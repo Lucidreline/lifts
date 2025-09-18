@@ -1,4 +1,5 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore"; // Add new imports
+
 import { db } from "../firebase";
 
 export const addExerciseToFirestore = async (exerciseData, userId) => {
@@ -45,4 +46,27 @@ export const addExerciseToFirestore = async (exerciseData, userId) => {
         console.error("Error adding exercise document: ", error);
         return { success: false, error };
     }
+};
+
+/**
+ * Fetches exercises for a specific user in real-time.
+ * @param {string} userId - The ID of the user.
+ * @param {function} callback - The function to call with the exercises array.
+ * @returns {function} - The unsubscribe function for the listener.
+ */
+export const getUserExercises = (userId, callback) => {
+    if (!userId) return;
+
+    const exercisesColRef = collection(db, "exercises");
+    const q = query(exercisesColRef, where("user", "==", userId));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const exercises = [];
+        querySnapshot.forEach((doc) => {
+            exercises.push({ id: doc.id, ...doc.data() });
+        });
+        callback(exercises);
+    });
+
+    return unsubscribe; // Return the function to stop listening
 };

@@ -1,8 +1,30 @@
-import { useState } from 'react';
-import AddExerciseModal from '../components/AddExerciseModal'; // 1. Import the modal
+import { useState, useEffect } from 'react';
+import { auth } from '../firebase';
+import { getUserExercises } from '../utils/exerciseUtils';
+import AddExerciseModal from '../components/AddExerciseModal';
+import ExerciseList from '../components/ExerciseList'; // Import the new list component
 
 function Exercises() {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [exercises, setExercises] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // This effect runs when the component mounts
+        const user = auth.currentUser;
+        if (user) {
+            // Set up the real-time listener
+            const unsubscribe = getUserExercises(user.uid, (fetchedExercises) => {
+                setExercises(fetchedExercises);
+                setIsLoading(false);
+            });
+
+            // Return a cleanup function to unsubscribe when the component unmounts
+            return () => unsubscribe();
+        } else {
+            setIsLoading(false);
+        }
+    }, []);
 
     return (
         <div>
@@ -16,9 +38,13 @@ function Exercises() {
                 </button>
             </div>
 
-            <p>Browse and manage your list of exercises here.</p>
+            {/* Conditionally render based on loading state */}
+            {isLoading ? (
+                <p>Loading exercises...</p>
+            ) : (
+                <ExerciseList exercises={exercises} />
+            )}
 
-            {/* 2. Render the modal component */}
             <AddExerciseModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
