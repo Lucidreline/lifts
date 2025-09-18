@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import { onAuthStateChanged } from 'firebase/auth'; // This import was missing
-import { auth } from '../firebase';
-import { getUserExercises, deleteExercise } from '../utils/exerciseUtils';
+import { useState, useMemo } from 'react';
+import { useUserExercises } from '../hooks/useUserExercises';
+import { deleteExercise } from '../utils/exerciseUtils';
 import AddExerciseModal from '../components/AddExerciseModal';
 import ExerciseList from '../components/ExerciseList';
 import ExerciseFilter from '../components/ExerciseFilter';
@@ -9,47 +8,21 @@ import splits from '../data/splits.js';
 import muscleGroups from '../data/muscleGroups.js';
 
 function Exercises() {
+    const { exercises, isLoading } = useUserExercises();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [exercises, setExercises] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [exerciseToEdit, setExerciseToEdit] = useState(null);
     const [filters, setFilters] = useState({
-        search: '',
-        category: '',
-        muscleGroup: { simple: '', specific: '' }
+        search: '', category: '', muscleGroup: { simple: '', specific: '' }
     });
 
-    useEffect(() => {
-        setIsLoading(true);
-        const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const exercisesUnsubscribe = getUserExercises(user.uid, (fetchedExercises) => {
-                    setExercises(fetchedExercises);
-                    setIsLoading(false);
-                });
-                return () => exercisesUnsubscribe();
-            } else {
-                setExercises([]);
-                setIsLoading(false);
-            }
-        });
-        return () => authUnsubscribe();
-    }, []);
-
-    // This is the restored filtering logic
     const filteredExercises = useMemo(() => {
         return exercises.filter(exercise => {
             const searchLower = filters.search.toLowerCase();
             const nameMatch = exercise.name.toLowerCase().includes(searchLower);
             const categoryMatch = filters.category ? exercise.categories.includes(filters.category) : true;
-            const simpleMuscleMatch = filters.muscleGroup.simple
-                ? exercise.muscleGroups.primary.simple === filters.muscleGroup.simple ||
-                exercise.muscleGroups.secondary.some(m => m.simple === filters.muscleGroup.simple)
-                : true;
-            const specificMuscleMatch = filters.muscleGroup.specific
-                ? exercise.muscleGroups.primary.specific === filters.muscleGroup.specific ||
-                exercise.muscleGroups.secondary.some(m => m.specific === filters.muscleGroup.specific)
-                : true;
+            const simpleMuscleMatch = filters.muscleGroup.simple ? exercise.muscleGroups.primary.simple === filters.muscleGroup.simple || exercise.muscleGroups.secondary.some(m => m.simple === filters.muscleGroup.simple) : true;
+            const specificMuscleMatch = filters.muscleGroup.specific ? exercise.muscleGroups.primary.specific === filters.muscleGroup.specific || exercise.muscleGroups.secondary.some(m => m.specific === filters.muscleGroup.specific) : true;
             return nameMatch && categoryMatch && simpleMuscleMatch && specificMuscleMatch;
         });
     }, [exercises, filters]);
@@ -74,36 +47,13 @@ function Exercises() {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Exercises</h1>
-                <button
-                    onClick={() => { setExerciseToEdit(null); setIsModalOpen(true); }}
-                    style={{ padding: '8px 16px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px' }}
-                >
+                <button onClick={() => { setExerciseToEdit(null); setIsModalOpen(true); }} style={{ padding: '8px 16px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px' }}>
                     Add Exercise
                 </button>
             </div>
-
-            <ExerciseFilter
-                filters={filters}
-                onFilterChange={setFilters}
-                muscleGroupsData={muscleGroups}
-                splitsData={splits}
-            />
-
-            {isLoading ? (
-                <p>Loading exercises...</p>
-            ) : (
-                <ExerciseList
-                    exercises={filteredExercises}
-                    onDelete={handleDeleteExercise}
-                    onEdit={handleOpenEditModal}
-                />
-            )}
-
-            <AddExerciseModal
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                exerciseToEdit={exerciseToEdit}
-            />
+            <ExerciseFilter filters={filters} onFilterChange={setFilters} muscleGroupsData={muscleGroups} splitsData={splits} />
+            {isLoading ? (<p>Loading exercises...</p>) : (<ExerciseList exercises={filteredExercises} onDelete={handleDeleteExercise} onEdit={handleOpenEditModal} />)}
+            <AddExerciseModal isOpen={isModalOpen} onClose={handleCloseModal} exerciseToEdit={exerciseToEdit} />
         </div>
     );
 }
