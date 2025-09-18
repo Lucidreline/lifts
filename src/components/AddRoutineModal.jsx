@@ -15,6 +15,19 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
         setRoutineCategories(prev => prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]);
     };
 
+    const handleExerciseDropdownChange = (e) => {
+        const selectedId = e.target.value;
+        if (!selectedId) return; // Ignore the default "Select..." option
+
+        const exerciseObject = availableExercises.find(ex => ex.id === selectedId);
+        if (exerciseObject) {
+            setSelectedExercises([...selectedExercises, exerciseObject]);
+        }
+
+        // Reset the dropdown back to the default option
+        setExerciseToAdd('');
+    };
+
     const handleAddExercise = () => {
         if (!exerciseToAdd) return; // Don't add if nothing is selected
         const exerciseObject = availableExercises.find(ex => ex.id === exerciseToAdd);
@@ -66,11 +79,15 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
                     <div style={{ marginBottom: '16px' }}>
                         <label>Add Exercise</label>
                         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                            <select value={exerciseToAdd} onChange={(e) => setExerciseToAdd(e.target.value)} style={{ flex: 1, padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }}>
-                                <option value="">Select an exercise...</option>
+                            <select
+                                value={exerciseToAdd}
+                                onChange={handleExerciseDropdownChange} // Use the new handler
+                                style={{ flex: 1, padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }}
+                            >
+                                <option value="">Select an exercise to add...</option>
                                 {filteredExercisesForDropdown.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
                             </select>
-                            <button type="button" onClick={handleAddExercise} style={{ padding: '8px 16px', backgroundColor: '#38a169', color: 'white', borderRadius: '8px' }}>Add</button>
+                            {/* The "Add" button has been removed */}
                         </div>
                     </div>
 
