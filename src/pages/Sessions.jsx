@@ -1,19 +1,17 @@
+import { useUserSessions } from '../hooks/useUserSessions';
+import SessionList from '../components/SessionList';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { createNewSession } from '../utils/sessionUtils';
 
 function Sessions() {
+    const { sessions, isLoading } = useUserSessions();
     const navigate = useNavigate();
 
     const handleCreateSession = async () => {
         const userId = auth.currentUser?.uid;
-        if (!userId) {
-            alert("You must be logged in to start a session.");
-            return;
-        }
-
+        if (!userId) return;
         const newSessionId = await createNewSession(userId);
-
         if (newSessionId) {
             navigate(`/session/${newSessionId}`);
         }
@@ -30,7 +28,12 @@ function Sessions() {
                     Create Session
                 </button>
             </div>
-            <p>Here you can view and manage your past workout sessions.</p>
+
+            {isLoading ? (
+                <p>Loading sessions...</p>
+            ) : (
+                <SessionList sessions={sessions} />
+            )}
         </div>
     );
 }
