@@ -1,30 +1,59 @@
-import { useEffect } from 'react';
-import { getRedirectResult } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { auth } from './firebase';
+
 import Login from './components/Login';
+import Navbar from './components/Navbar';
+import Dashboard from './pages/Dashboard';
+import Sessions from './pages/Sessions';
+import Exercises from './pages/Exercises';
 
 function App() {
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          // User has just signed in.
-          const user = result.user;
-          console.log("Signed in from redirect:", user);
-          alert(`Welcome back, ${user.displayName}!`);
-        }
-      } catch (error) {
-        console.error("Error getting redirect result:", error);
-      }
-    };
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    checkRedirectResult();
-  }, []); // Empty array ensures this runs only once when the app loads
+  useEffect(() => {
+    // This processes the result from a redirect sign-in
+    // Its success will then be picked up by the onAuthStateChanged observer
+    getRedirectResult(auth).catch((error) => {
+      console.error("Error processing redirect result:", error);
+    });
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe(); // Cleanup subscription
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-900 text-white min-h-screen">
-      <Login />
+      {user ? (
+        <>
+          <Navbar />
+          <main className="container mx-auto p-4">
+            <Routes>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/sessions" element={<Sessions />} />
+              <Route path="/exercises" element={<Exercises />} />
+              {/* Redirect any other path to the dashboard */}
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            </Routes>
+          </main>
+        </>
+      ) : (
+        <Login />
+      )}
     </div>
   );
 }

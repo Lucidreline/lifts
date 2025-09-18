@@ -1,10 +1,24 @@
-import { GoogleAuthProvider, signInWithRedirect } from "firebase/auth"; // Changed this line
+// src/components/Login.jsx
+
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
 
 function Login() {
-    const handleGoogleSignIn = () => { // No longer needs async/await
+    const handleGoogleSignIn = async () => {
         const provider = new GoogleAuthProvider();
-        signInWithRedirect(auth, provider); // Changed this line
+        try {
+            console.log("Attempting sign-in with pop-up...");
+            const result = await signInWithPopup(auth, provider);
+
+            // If we get here, the sign-in was a success in the pop-up
+            console.log("✅ Pop-up sign-in successful! User:", result.user);
+            alert(`Welcome, ${result.user.displayName}!`);
+
+        } catch (error) {
+            // If there was any error, it will be caught here
+            console.error("🚨 Pop-up Sign-In Error:", error);
+            alert(`Pop-up sign-in failed: ${error.message}`);
+        }
     };
 
     return (
