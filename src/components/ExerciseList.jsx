@@ -1,6 +1,7 @@
 // src/components/ExerciseList.jsx
 
-function ExerciseList({ exercises }) {
+// The component now accepts an `onDelete` prop
+function ExerciseList({ exercises, onDelete }) {
     if (exercises.length === 0) {
         return <p>You haven't added any exercises yet. Click "Add Exercise" to get started!</p>;
     }
@@ -15,15 +16,14 @@ function ExerciseList({ exercises }) {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '16px',
-                        // Add a border between items, but not after the last one
                         borderBottom: index < exercises.length - 1 ? '1px solid #4a5568' : 'none'
                     }}
                 >
                     <span>{exercise.name}</span>
                     <div>
-                        {/* We will add buttons here later */}
                         <button style={{ marginRight: '8px' }}>Edit</button>
-                        <button>Delete</button>
+                        {/* The onClick handler now calls the onDelete prop with the exercise's ID */}
+                        <button onClick={() => onDelete(exercise.id)}>Delete</button>
                     </div>
                 </div>
             ))}

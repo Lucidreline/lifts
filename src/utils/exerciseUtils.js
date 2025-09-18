@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore"; // Add new imports
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, deleteDoc } from "firebase/firestore"; // Add new imports
 
 import { db } from "../firebase";
 
@@ -69,4 +69,20 @@ export const getUserExercises = (userId, callback) => {
     });
 
     return unsubscribe; // Return the function to stop listening
+};
+
+/**
+ * Deletes an exercise document from Firestore.
+ * @param {string} exerciseId - The ID of the document to delete.
+ */
+export const deleteExercise = async (exerciseId) => {
+    try {
+        const exerciseDocRef = doc(db, "exercises", exerciseId);
+        await deleteDoc(exerciseDocRef);
+        console.log("Exercise deleted successfully.");
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting exercise:", error);
+        return { success: false, error };
+    }
 };

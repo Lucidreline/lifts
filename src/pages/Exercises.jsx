@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'; // 1. Import useMemo
+import { useState, useEffect, useMemo } from 'react';
 import { auth } from '../firebase';
-import { getUserExercises } from '../utils/exerciseUtils';
+import { getUserExercises, deleteExercise } from '../utils/exerciseUtils';
 import AddExerciseModal from '../components/AddExerciseModal';
 import ExerciseList from '../components/ExerciseList';
 import ExerciseFilter from '../components/ExerciseFilter';
@@ -9,7 +9,7 @@ import muscleGroups from '../data/muscleGroups.js';
 
 function Exercises() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [exercises, setExercises] = useState([]); // This is the master list
+    const [exercises, setExercises] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filters, setFilters] = useState({
         search: '',
@@ -17,6 +17,7 @@ function Exercises() {
         muscleGroup: { simple: '', specific: '' }
     });
 
+    // Effect to fetch exercises in real-time
     useEffect(() => {
         const user = auth.currentUser;
         if (user) {
@@ -30,27 +31,30 @@ function Exercises() {
         }
     }, []);
 
-    // 2. This is our new filtering logic
+    // Memoized function to filter exercises when the list or filters change
     const filteredExercises = useMemo(() => {
         return exercises.filter(exercise => {
             const searchLower = filters.search.toLowerCase();
             const nameMatch = exercise.name.toLowerCase().includes(searchLower);
-
             const categoryMatch = filters.category ? exercise.categories.includes(filters.category) : true;
-
             const simpleMuscleMatch = filters.muscleGroup.simple
                 ? exercise.muscleGroups.primary.simple === filters.muscleGroup.simple ||
                 exercise.muscleGroups.secondary.some(m => m.simple === filters.muscleGroup.simple)
                 : true;
-
             const specificMuscleMatch = filters.muscleGroup.specific
                 ? exercise.muscleGroups.primary.specific === filters.muscleGroup.specific ||
                 exercise.muscleGroups.secondary.some(m => m.specific === filters.muscleGroup.specific)
                 : true;
-
             return nameMatch && categoryMatch && simpleMuscleMatch && specificMuscleMatch;
         });
-    }, [exercises, filters]); // 3. This array tells the hook when to re-run
+    }, [exercises, filters]);
+
+    // Handler for deleting an exercise
+    const handleDeleteExercise = async (exerciseId) => {
+        if (window.confirm("Are you sure you want to delete this exercise?")) {
+            await deleteExercise(exerciseId);
+        }
+    };
 
     return (
         <div>
@@ -58,7 +62,7 @@ function Exercises() {
                 <h1 className="text-3xl font-bold">Exercises</h1>
                 <button
                     onClick={() => setIsModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+                    style={{ padding: '8px 16px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px' }}
                 >
                     Add Exercise
                 </button>
@@ -74,8 +78,10 @@ function Exercises() {
             {isLoading ? (
                 <p>Loading exercises...</p>
             ) : (
-                // 4. We pass the filtered list to the component
-                <ExerciseList exercises={filteredExercises} />
+                <ExerciseList
+                    exercises={filteredExercises}
+                    onDelete={handleDeleteExercise}
+                />
             )}
 
             <AddExerciseModal
