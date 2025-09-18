@@ -1,4 +1,5 @@
-function RoutineList({ routines, onDelete }) {
+function RoutineList({ routines, onDelete, onEdit }) {
+    console.log('Routines data:', routines);
     if (routines.length === 0) {
         return <p>You haven't created any routines yet. Click "Add Routine" to get started!</p>;
     }
@@ -23,7 +24,7 @@ function RoutineList({ routines, onDelete }) {
                         </p>
                     </div>
                     <div>
-                        <button style={{ marginRight: '8px' }}>Edit</button>
+                        <button onClick={() => onEdit(routine)} style={{ marginRight: '8px' }}>Edit</button>
                         <button onClick={() => onDelete(routine.id)}>Delete</button>
                     </div>
                 </div>

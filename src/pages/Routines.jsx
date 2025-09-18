@@ -18,6 +18,11 @@ function Routines() {
         setIsModalOpen(true);
     };
 
+    const handleOpenEditModal = (routine) => {
+        setRoutineToEdit(routine);
+        setIsModalOpen(true);
+    };
+
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setRoutineToEdit(null);
@@ -41,8 +46,11 @@ function Routines() {
             {isLoading ? (
                 <p>Loading routines...</p>
             ) : (
-                <RoutineList routines={routines} onDelete={handleDeleteRoutine} />
-            )}
+                <RoutineList
+                    routines={routines}
+                    onDelete={handleDeleteRoutine}
+                    onEdit={handleOpenEditModal}
+                />)}
 
             <AddRoutineModal
                 isOpen={isModalOpen}

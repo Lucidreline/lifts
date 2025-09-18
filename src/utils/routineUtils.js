@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, updateDoc, doc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 /**
@@ -65,6 +65,33 @@ export const deleteRoutine = async (routineId) => {
         return { success: true };
     } catch (error) {
         console.error("Error deleting routine:", error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * Updates an existing routine document in Firestore.
+ * @param {string} routineId - The ID of the document to update.
+ * @param {object} routineData - The updated form data.
+ */
+export const updateRoutine = async (routineId, routineData) => {
+    try {
+        const exerciseIds = routineData.selectedExercises.map(ex => ex.id);
+
+        const updatedRoutineDoc = {
+            name: routineData.routineName,
+            categories: routineData.routineCategories,
+            exercises: exerciseIds,
+        };
+
+        const routineDocRef = doc(db, "routines", routineId);
+        await updateDoc(routineDocRef, updatedRoutineDoc);
+
+        console.log("Routine document updated successfully.");
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error updating routine document: ", error);
         return { success: false, error };
     }
 };

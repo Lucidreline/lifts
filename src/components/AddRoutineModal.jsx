@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { auth } from '../firebase'; // This import was missing
-import { addRoutineToFirestore } from '../utils/routineUtils'; // This import was missing
+import { addRoutineToFirestore, updateRoutine } from '../utils/routineUtils'; // This import was missing
 import splits from '../data/splits.js';
 
 function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises }) {
@@ -13,13 +13,27 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
 
     // Effect to reset the form when the modal is opened
     useEffect(() => {
-        if (isOpen && !isEditMode) {
-            setRoutineName('');
-            setRoutineCategories([]);
-            setSelectedExercises([]);
-            setExerciseToAdd('');
+        if (isOpen) {
+            if (isEditMode && routineToEdit) {
+                // Pre-fill fields with existing routine data
+                setRoutineName(routineToEdit.name);
+                setRoutineCategories(routineToEdit.categories);
+
+                // Find the full exercise objects based on the IDs stored in the routine
+                const exercisesInRoutine = routineToEdit.exercises.map(id =>
+                    availableExercises.find(ex => ex.id === id)
+                ).filter(Boolean); // Filter out any undefined exercises
+                setSelectedExercises(exercisesInRoutine);
+
+            } else {
+                // Reset all fields for "add" mode
+                setRoutineName('');
+                setRoutineCategories([]);
+                setSelectedExercises([]);
+                setExerciseToAdd('');
+            }
         }
-    }, [isOpen, isEditMode]);
+    }, [isOpen, isEditMode, routineToEdit, availableExercises]);
 
 
     const handleCategoryClick = (category) => {
@@ -52,17 +66,16 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isFormInvalid) return;
-
         const routineData = { routineName, routineCategories, selectedExercises };
-        const userId = auth.currentUser.uid;
 
-        // We'll add the edit logic here later
-        const result = await addRoutineToFirestore(routineData, userId);
+        const result = isEditMode
+            ? await updateRoutine(routineToEdit.id, routineData)
+            : await addRoutineToFirestore(routineData, auth.currentUser.uid);
 
         if (result.success) {
             onClose();
         } else {
-            alert("Failed to create routine. Please try again.");
+            alert(`Failed to ${isEditMode ? 'update' : 'create'} routine.`);
         }
     };
 
@@ -72,7 +85,6 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
     }, [routineCategories, availableExercises]);
 
     if (!isOpen) return null;
-
     const isFormInvalid = !routineName || routineCategories.length === 0 || selectedExercises.length === 0;
 
     return (
