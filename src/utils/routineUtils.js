@@ -1,23 +1,25 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 
 /**
  * Creates a new routine document in Firestore.
- * @param {string} routineName - The name of the routine.
- * @param {Array<string>} selectedExerciseIds - An array of exercise document IDs.
+ * @param {object} routineData - The data from the form.
  * @param {string} userId - The ID of the current user.
  */
-export const addRoutineToFirestore = async (routineName, selectedExerciseIds, userId) => {
+export const addRoutineToFirestore = async (routineData, userId) => {
     try {
-        // Construct the document to be saved
+        // Transform the array of full exercise objects into an array of just their IDs for storage.
+        const exerciseIds = routineData.selectedExercises.map(ex => ex.id);
+
+        // Construct the final document to be saved.
         const routineDoc = {
             user: userId,
-            name: routineName,
-            exercises: selectedExerciseIds, // The array of exercise IDs
+            name: routineData.routineName,
+            categories: routineData.routineCategories,
+            exercises: exerciseIds, // Save the array of IDs
             createdDate: serverTimestamp(),
         };
 
-        // Add the document to a new "routines" collection
         const docRef = await addDoc(collection(db, "routines"), routineDoc);
         console.log("Routine document written with ID: ", docRef.id);
         return { success: true };
@@ -26,4 +28,27 @@ export const addRoutineToFirestore = async (routineName, selectedExerciseIds, us
         console.error("Error adding routine document: ", error);
         return { success: false, error };
     }
+};
+
+/**
+ * Fetches routines for a specific user in real-time.
+ * @param {string} userId - The ID of the user.
+ * @param {function} callback - The function to call with the routines array.
+ * @returns {function} - The unsubscribe function for the listener.
+ */
+export const getUserRoutines = (userId, callback) => {
+    if (!userId) return () => { };
+
+    const routinesColRef = collection(db, "routines");
+    const q = query(routinesColRef, where("user", "==", userId));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const routines = [];
+        querySnapshot.forEach((doc) => {
+            routines.push({ id: doc.id, ...doc.data() });
+        });
+        callback(routines);
+    });
+
+    return unsubscribe;
 };

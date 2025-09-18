@@ -1,8 +1,12 @@
-import { useState } from 'react';
 import { useUserExercises } from '../hooks/useUserExercises';
 import AddRoutineModal from '../components/AddRoutineModal';
+import { useUserRoutines } from '../hooks/useUserRoutines';
+import RoutineList from '../components/RoutineList';
+import { useState } from 'react';
 
 function Routines() {
+    const { routines, isLoading } = useUserRoutines();
+
     const { exercises: allExercises } = useUserExercises();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,7 +30,13 @@ function Routines() {
                     Add Routine
                 </button>
             </div>
-            <p>Create and manage your workout routines here.</p>
+
+            {isLoading ? (
+                <p>Loading routines...</p>
+            ) : (
+                <RoutineList routines={routines} />
+            )}
+
             <AddRoutineModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
@@ -36,5 +46,6 @@ function Routines() {
         </div>
     );
 }
+
 
 export default Routines;

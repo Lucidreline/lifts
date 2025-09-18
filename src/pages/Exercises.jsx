@@ -43,11 +43,16 @@ function Exercises() {
         setExerciseToEdit(null);
     };
 
+    const handleOpenAddModal = () => {
+        setExerciseToEdit(null); // This line ensures the form is empty
+        setIsModalOpen(true);
+    };
+
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Exercises</h1>
-                <button onClick={() => { setExerciseToEdit(null); setIsModalOpen(true); }} style={{ padding: '8px 16px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px' }}>
+                <button onClick={handleOpenAddModal} style={{ padding: '8px 16px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px' }}>
                     Add Exercise
                 </button>
             </div>

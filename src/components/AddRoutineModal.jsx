@@ -1,55 +1,79 @@
-import { useState, useMemo } from 'react';
-import splits from '../data/splits.js'; // We'll use this for the category options
+import { useState, useMemo, useEffect } from 'react';
+import { auth } from '../firebase'; // This import was missing
+import { addRoutineToFirestore } from '../utils/routineUtils'; // This import was missing
+import splits from '../data/splits.js';
 
 function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises }) {
     const isEditMode = Boolean(routineToEdit);
 
-    // --- FORM STATE ---
     const [routineName, setRoutineName] = useState('');
     const [routineCategories, setRoutineCategories] = useState([]);
-    const [exerciseToAdd, setExerciseToAdd] = useState(''); // Tracks the dropdown selection
-    const [selectedExercises, setSelectedExercises] = useState([]); // The list of exercises in the routine
+    const [selectedExercises, setSelectedExercises] = useState([]);
+    const [exerciseToAdd, setExerciseToAdd] = useState('');
 
-    // --- HANDLERS ---
+    // Effect to reset the form when the modal is opened
+    useEffect(() => {
+        if (isOpen && !isEditMode) {
+            setRoutineName('');
+            setRoutineCategories([]);
+            setSelectedExercises([]);
+            setExerciseToAdd('');
+        }
+    }, [isOpen, isEditMode]);
+
+
     const handleCategoryClick = (category) => {
         setRoutineCategories(prev => prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]);
     };
 
     const handleExerciseDropdownChange = (e) => {
         const selectedId = e.target.value;
-        if (!selectedId) return; // Ignore the default "Select..." option
-
+        if (!selectedId) return;
         const exerciseObject = availableExercises.find(ex => ex.id === selectedId);
         if (exerciseObject) {
             setSelectedExercises([...selectedExercises, exerciseObject]);
         }
-
-        // Reset the dropdown back to the default option
         setExerciseToAdd('');
     };
 
-    const handleAddExercise = () => {
-        if (!exerciseToAdd) return; // Don't add if nothing is selected
-        const exerciseObject = availableExercises.find(ex => ex.id === exerciseToAdd);
-        if (exerciseObject) {
-            setSelectedExercises([...selectedExercises, exerciseObject]);
-        }
-        setExerciseToAdd(''); // Reset dropdown
+    const handleRemoveExercise = (indexToRemove) => {
+        setSelectedExercises(selectedExercises.filter((_, index) => index !== indexToRemove));
     };
 
-    // --- FILTERING LOGIC ---
-    // This filters the main exercise list based on the selected categories
-    const filteredExercisesForDropdown = useMemo(() => {
-        if (routineCategories.length === 0) {
-            return availableExercises; // If no categories selected, show all exercises
+    const handleReorderExercise = (index, direction) => {
+        const newList = [...selectedExercises];
+        const item = newList[index];
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        newList.splice(index, 1);
+        newList.splice(newIndex, 0, item);
+        setSelectedExercises(newList);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (isFormInvalid) return;
+
+        const routineData = { routineName, routineCategories, selectedExercises };
+        const userId = auth.currentUser.uid;
+
+        // We'll add the edit logic here later
+        const result = await addRoutineToFirestore(routineData, userId);
+
+        if (result.success) {
+            onClose();
+        } else {
+            alert("Failed to create routine. Please try again.");
         }
-        return availableExercises.filter(ex =>
-            // Check if any of the exercise's categories are in the selected routine categories
-            ex.categories.some(cat => routineCategories.includes(cat))
-        );
+    };
+
+    const filteredExercisesForDropdown = useMemo(() => {
+        if (routineCategories.length === 0) return availableExercises;
+        return availableExercises.filter(ex => ex.categories.some(cat => routineCategories.includes(cat)));
     }, [routineCategories, availableExercises]);
 
     if (!isOpen) return null;
+
+    const isFormInvalid = !routineName || routineCategories.length === 0 || selectedExercises.length === 0;
 
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -59,7 +83,7 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
                     <button onClick={onClose} style={{ fontSize: '1.5rem' }}>&times;</button>
                 </div>
 
-                <form style={{ flex: 1, overflowY: 'auto' }}>
+                <form onSubmit={handleSubmit} style={{ flex: 1, overflowY: 'auto' }}>
                     {/* Routine Name */}
                     <div style={{ marginBottom: '16px' }}>
                         <label htmlFor="routine-name">Routine Name *</label>
@@ -81,13 +105,12 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
                         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                             <select
                                 value={exerciseToAdd}
-                                onChange={handleExerciseDropdownChange} // Use the new handler
+                                onChange={handleExerciseDropdownChange}
                                 style={{ flex: 1, padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }}
                             >
                                 <option value="">Select an exercise to add...</option>
                                 {filteredExercisesForDropdown.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
                             </select>
-                            {/* The "Add" button has been removed */}
                         </div>
                     </div>
 
@@ -98,11 +121,21 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
                             {selectedExercises.map((ex, index) => (
                                 <div key={`${ex.id}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', backgroundColor: '#4a5568', borderRadius: '4px', marginBottom: '8px' }}>
                                     <span>{ex.name}</span>
-                                    {/* Reorder/Delete buttons will go here */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button type="button" onClick={() => handleReorderExercise(index, 'up')} disabled={index === 0} style={{ border: 'none', background: 'none', color: index === 0 ? '#718096' : 'white', cursor: 'pointer' }}>&#x25B2;</button>
+                                        <button type="button" onClick={() => handleReorderExercise(index, 'down')} disabled={index === selectedExercises.length - 1} style={{ border: 'none', background: 'none', color: index === selectedExercises.length - 1 ? '#718096' : 'white', cursor: 'pointer' }}>&#x25BC;</button>
+                                        <button type="button" onClick={() => handleRemoveExercise(index)} style={{ border: 'none', background: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold' }}>&times;</button>
+                                    </div>
                                 </div>
                             ))}
                             {selectedExercises.length === 0 && <p style={{ color: '#a0aec0', textAlign: 'center' }}>No exercises added yet.</p>}
                         </div>
+                    </div>
+
+                    <div style={{ marginTop: '24px', textAlign: 'right' }}>
+                        <button type="submit" disabled={isFormInvalid} style={{ padding: '10px 20px', backgroundColor: isFormInvalid ? '#4a5568' : '#3182ce', color: 'white', borderRadius: '8px', cursor: isFormInvalid ? 'not-allowed' : 'pointer' }}>
+                            {isEditMode ? 'Save Changes' : 'Create Routine'}
+                        </button>
                     </div>
                 </form>
             </div>
