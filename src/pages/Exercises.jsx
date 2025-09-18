@@ -1,30 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react'; // 1. Import useMemo
 import { auth } from '../firebase';
 import { getUserExercises } from '../utils/exerciseUtils';
 import AddExerciseModal from '../components/AddExerciseModal';
-import ExerciseList from '../components/ExerciseList'; // Import the new list component
+import ExerciseList from '../components/ExerciseList';
+import ExerciseFilter from '../components/ExerciseFilter';
+import splits from '../data/splits.js';
+import muscleGroups from '../data/muscleGroups.js';
 
 function Exercises() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [exercises, setExercises] = useState([]);
+    const [exercises, setExercises] = useState([]); // This is the master list
     const [isLoading, setIsLoading] = useState(true);
+    const [filters, setFilters] = useState({
+        search: '',
+        category: '',
+        muscleGroup: { simple: '', specific: '' }
+    });
 
     useEffect(() => {
-        // This effect runs when the component mounts
         const user = auth.currentUser;
         if (user) {
-            // Set up the real-time listener
             const unsubscribe = getUserExercises(user.uid, (fetchedExercises) => {
                 setExercises(fetchedExercises);
                 setIsLoading(false);
             });
-
-            // Return a cleanup function to unsubscribe when the component unmounts
             return () => unsubscribe();
         } else {
             setIsLoading(false);
         }
     }, []);
+
+    // 2. This is our new filtering logic
+    const filteredExercises = useMemo(() => {
+        return exercises.filter(exercise => {
+            const searchLower = filters.search.toLowerCase();
+            const nameMatch = exercise.name.toLowerCase().includes(searchLower);
+
+            const categoryMatch = filters.category ? exercise.categories.includes(filters.category) : true;
+
+            const simpleMuscleMatch = filters.muscleGroup.simple
+                ? exercise.muscleGroups.primary.simple === filters.muscleGroup.simple ||
+                exercise.muscleGroups.secondary.some(m => m.simple === filters.muscleGroup.simple)
+                : true;
+
+            const specificMuscleMatch = filters.muscleGroup.specific
+                ? exercise.muscleGroups.primary.specific === filters.muscleGroup.specific ||
+                exercise.muscleGroups.secondary.some(m => m.specific === filters.muscleGroup.specific)
+                : true;
+
+            return nameMatch && categoryMatch && simpleMuscleMatch && specificMuscleMatch;
+        });
+    }, [exercises, filters]); // 3. This array tells the hook when to re-run
 
     return (
         <div>
@@ -38,11 +64,18 @@ function Exercises() {
                 </button>
             </div>
 
-            {/* Conditionally render based on loading state */}
+            <ExerciseFilter
+                filters={filters}
+                onFilterChange={setFilters}
+                muscleGroupsData={muscleGroups}
+                splitsData={splits}
+            />
+
             {isLoading ? (
                 <p>Loading exercises...</p>
             ) : (
-                <ExerciseList exercises={exercises} />
+                // 4. We pass the filtered list to the component
+                <ExerciseList exercises={filteredExercises} />
             )}
 
             <AddExerciseModal
