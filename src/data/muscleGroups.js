@@ -44,3 +44,5 @@ const muscleGroups = [
         specific: ["All Forearms", "Forearm Flexors", "Forearm Extensors"]
     }
 ];
+
+export default muscleGroups
