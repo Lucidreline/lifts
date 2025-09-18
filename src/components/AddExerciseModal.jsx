@@ -1,53 +1,43 @@
 import { useState } from 'react';
+import { auth } from '../firebase';
+import { addExerciseToFirestore } from '../utils/exerciseUtils';
 import splits from '../data/splits.js';
 import muscleGroups from '../data/muscleGroups.js';
 
 function AddExerciseModal({ isOpen, onClose }) {
-    // --- FORM STATE ---
+    // --- STATE ---
     const [name, setName] = useState('');
     const [variation, setVariation] = useState('');
     const [categories, setCategories] = useState([]);
     const [primaryMuscleGroup, setPrimaryMuscleGroup] = useState({ simple: '', specific: '' });
-    const [specificPrimaryOptions, setSpecificPrimaryOptions] = useState([]);
-    // NEW: State for secondary muscle groups
     const [secondaryMuscleGroups, setSecondaryMuscleGroups] = useState([{ simple: '', specific: '' }]);
+    const [specificPrimaryOptions, setSpecificPrimaryOptions] = useState([]);
     const [specificSecondaryOptions, setSpecificSecondaryOptions] = useState([[]]);
-
 
     // --- HANDLERS ---
     const handleCategoryClick = (category) => {
         setCategories(prev => prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]);
     };
-
     const handlePrimarySimpleChange = (e) => {
         const simpleGroupName = e.target.value;
         setPrimaryMuscleGroup({ simple: simpleGroupName, specific: '' });
         const selectedGroup = muscleGroups.find(group => group.name === simpleGroupName);
         setSpecificPrimaryOptions(selectedGroup ? selectedGroup.specific : []);
     };
-
-    // NEW: Handler for secondary "Simple" dropdowns
     const handleSecondarySimpleChange = (e, index) => {
         const simpleGroupName = e.target.value;
-        // Update the specific group at this index
         const updatedGroups = [...secondaryMuscleGroups];
         updatedGroups[index] = { simple: simpleGroupName, specific: '' };
         setSecondaryMuscleGroups(updatedGroups);
-
-        // Update the specific options for this dropdown
         const selectedGroup = muscleGroups.find(group => group.name === simpleGroupName);
         const updatedOptions = [...specificSecondaryOptions];
         updatedOptions[index] = selectedGroup ? selectedGroup.specific : [];
         setSpecificSecondaryOptions(updatedOptions);
-
-        // DYNAMIC LOGIC: If this is the last row and it's being filled, add a new row (up to 3 total)
         if (simpleGroupName && index === secondaryMuscleGroups.length - 1 && secondaryMuscleGroups.length < 3) {
             setSecondaryMuscleGroups([...updatedGroups, { simple: '', specific: '' }]);
             setSpecificSecondaryOptions([...updatedOptions, []]);
         }
     };
-
-    // NEW: Handler for secondary "Specific" dropdowns
     const handleSecondarySpecificChange = (e, index) => {
         const specificGroupName = e.target.value;
         const updatedGroups = [...secondaryMuscleGroups];
@@ -55,9 +45,21 @@ function AddExerciseModal({ isOpen, onClose }) {
         setSecondaryMuscleGroups(updatedGroups);
     };
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (isFormInvalid) return;
+        const exerciseData = { name, variation, categories, primaryMuscleGroup, secondaryMuscleGroups };
+        const userId = auth.currentUser.uid;
+        const result = await addExerciseToFirestore(exerciseData, userId);
+        if (result.success) {
+            onClose();
+        } else {
+            alert("Failed to add exercise. Please try again.");
+        }
+    };
+
     if (!isOpen) return null;
 
-    // --- VALIDATION ---
     const isFormInvalid = !name || categories.length === 0 || !primaryMuscleGroup.simple;
 
     return (
@@ -65,10 +67,10 @@ function AddExerciseModal({ isOpen, onClose }) {
             <div style={{ background: '#2d3748', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Add a New Exercise</h2>
-                    <button onClick={onClose} style={{ fontSize: '1.rem' }}>&times;</button>
+                    <button onClick={onClose} style={{ fontSize: '1.5rem' }}>&times;</button>
                 </div>
 
-                <form>
+                <form onSubmit={handleSubmit}>
                     {/* Categories */}
                     <div>
                         <label>Categories *</label>
