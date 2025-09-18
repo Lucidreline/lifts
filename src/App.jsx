@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { auth } from './firebase';
+import './index.css'
 
 import Login from './components/Login';
 import Navbar from './components/Navbar';

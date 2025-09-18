@@ -1,7 +1,6 @@
-// src/components/Login.jsx
-
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../firebase";
+import { createUserDocument } from "../utils/userUtils"; // Import our new function
 
 function Login() {
     const handleGoogleSignIn = async () => {
@@ -9,13 +8,12 @@ function Login() {
         try {
             console.log("Attempting sign-in with pop-up...");
             const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            console.log("✅ Pop-up sign-in successful! User:", user);
 
-            // If we get here, the sign-in was a success in the pop-up
-            console.log("✅ Pop-up sign-in successful! User:", result.user);
-            alert(`Welcome, ${result.user.displayName}!`);
+            await createUserDocument(user);
 
         } catch (error) {
-            // If there was any error, it will be caught here
             console.error("🚨 Pop-up Sign-In Error:", error);
             alert(`Pop-up sign-in failed: ${error.message}`);
         }
