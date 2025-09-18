@@ -1,7 +1,5 @@
-// src/components/ExerciseList.jsx
-
-// The component now accepts an `onDelete` prop
-function ExerciseList({ exercises, onDelete }) {
+// The component now accepts `onEdit` and `onDelete` props
+function ExerciseList({ exercises, onEdit, onDelete }) {
     if (exercises.length === 0) {
         return <p>You haven't added any exercises yet. Click "Add Exercise" to get started!</p>;
     }
@@ -21,8 +19,8 @@ function ExerciseList({ exercises, onDelete }) {
                 >
                     <span>{exercise.name}</span>
                     <div>
-                        <button style={{ marginRight: '8px' }}>Edit</button>
-                        {/* The onClick handler now calls the onDelete prop with the exercise's ID */}
+                        {/* The onClick handler now calls the onEdit prop with the entire exercise object */}
+                        <button onClick={() => onEdit(exercise)} style={{ marginRight: '8px' }}>Edit</button>
                         <button onClick={() => onDelete(exercise.id)}>Delete</button>
                     </div>
                 </div>

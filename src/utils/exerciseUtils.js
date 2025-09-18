@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, deleteDoc } from "firebase/firestore"; // Add new imports
+import { collection, updateDoc, addDoc, serverTimestamp, query, where, onSnapshot, doc, deleteDoc } from "firebase/firestore"; // Add new imports
 
 import { db } from "../firebase";
 
@@ -83,6 +83,49 @@ export const deleteExercise = async (exerciseId) => {
         return { success: true };
     } catch (error) {
         console.error("Error deleting exercise:", error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * Updates an existing exercise document in Firestore.
+ * @param {string} exerciseId - The ID of the document to update.
+ * @param {object} exerciseData - The updated form data.
+ */
+export const updateExercise = async (exerciseId, exerciseData) => {
+    try {
+        // This data formatting logic is the same as in the 'add' function
+        const validSecondaryGroups = exerciseData.secondaryMuscleGroups.filter(
+            (group) => group.simple
+        );
+
+        const muscleGroupsForDb = {
+            primary: {
+                simple: exerciseData.primaryMuscleGroup.simple,
+                specific: exerciseData.primaryMuscleGroup.specific || null,
+            },
+            secondary: validSecondaryGroups.map(group => ({
+                simple: group.simple,
+                specific: group.specific || null,
+            })),
+        };
+
+        // Construct the object with the fields to update
+        const updatedExerciseDoc = {
+            name: exerciseData.name,
+            variation: exerciseData.variation,
+            categories: exerciseData.categories,
+            muscleGroups: muscleGroupsForDb,
+        };
+
+        const exerciseDocRef = doc(db, "exercises", exerciseId);
+        await updateDoc(exerciseDocRef, updatedExerciseDoc);
+
+        console.log("Exercise document updated successfully.");
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error updating exercise document: ", error);
         return { success: false, error };
     }
 };

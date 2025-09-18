@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { onAuthStateChanged } from 'firebase/auth'; // This import was missing
 import { auth } from '../firebase';
 import { getUserExercises, deleteExercise } from '../utils/exerciseUtils';
 import AddExerciseModal from '../components/AddExerciseModal';
@@ -11,27 +12,31 @@ function Exercises() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [exercises, setExercises] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [exerciseToEdit, setExerciseToEdit] = useState(null);
     const [filters, setFilters] = useState({
         search: '',
         category: '',
         muscleGroup: { simple: '', specific: '' }
     });
 
-    // Effect to fetch exercises in real-time
     useEffect(() => {
-        const user = auth.currentUser;
-        if (user) {
-            const unsubscribe = getUserExercises(user.uid, (fetchedExercises) => {
-                setExercises(fetchedExercises);
+        setIsLoading(true);
+        const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const exercisesUnsubscribe = getUserExercises(user.uid, (fetchedExercises) => {
+                    setExercises(fetchedExercises);
+                    setIsLoading(false);
+                });
+                return () => exercisesUnsubscribe();
+            } else {
+                setExercises([]);
                 setIsLoading(false);
-            });
-            return () => unsubscribe();
-        } else {
-            setIsLoading(false);
-        }
+            }
+        });
+        return () => authUnsubscribe();
     }, []);
 
-    // Memoized function to filter exercises when the list or filters change
+    // This is the restored filtering logic
     const filteredExercises = useMemo(() => {
         return exercises.filter(exercise => {
             const searchLower = filters.search.toLowerCase();
@@ -49,19 +54,28 @@ function Exercises() {
         });
     }, [exercises, filters]);
 
-    // Handler for deleting an exercise
     const handleDeleteExercise = async (exerciseId) => {
         if (window.confirm("Are you sure you want to delete this exercise?")) {
             await deleteExercise(exerciseId);
         }
     };
 
+    const handleOpenEditModal = (exercise) => {
+        setExerciseToEdit(exercise);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setExerciseToEdit(null);
+    };
+
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">Exercises</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Exercises</h1>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => { setExerciseToEdit(null); setIsModalOpen(true); }}
                     style={{ padding: '8px 16px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px' }}
                 >
                     Add Exercise
@@ -81,12 +95,14 @@ function Exercises() {
                 <ExerciseList
                     exercises={filteredExercises}
                     onDelete={handleDeleteExercise}
+                    onEdit={handleOpenEditModal}
                 />
             )}
 
             <AddExerciseModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleCloseModal}
+                exerciseToEdit={exerciseToEdit}
             />
         </div>
     );

@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
-import { addExerciseToFirestore } from '../utils/exerciseUtils';
+import { addExerciseToFirestore, updateExercise } from '../utils/exerciseUtils';
 import splits from '../data/splits.js';
 import muscleGroups from '../data/muscleGroups.js';
 
-function AddExerciseModal({ isOpen, onClose }) {
-    // --- STATE ---
+function AddExerciseModal({ isOpen, onClose, exerciseToEdit }) {
     const [name, setName] = useState('');
     const [variation, setVariation] = useState('');
     const [categories, setCategories] = useState([]);
@@ -14,29 +13,53 @@ function AddExerciseModal({ isOpen, onClose }) {
     const [specificPrimaryOptions, setSpecificPrimaryOptions] = useState([]);
     const [specificSecondaryOptions, setSpecificSecondaryOptions] = useState([[]]);
 
-    // --- HANDLERS ---
-    const handleCategoryClick = (category) => {
-        setCategories(prev => prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]);
-    };
+    const isEditMode = Boolean(exerciseToEdit);
+
+    useEffect(() => {
+        if (isEditMode && exerciseToEdit) {
+            setName(exerciseToEdit.name);
+            setVariation(exerciseToEdit.variation || '');
+            setCategories(exerciseToEdit.categories);
+            setPrimaryMuscleGroup(exerciseToEdit.muscleGroups.primary);
+            const secondary = exerciseToEdit.muscleGroups.secondary;
+            setSecondaryMuscleGroups(secondary.length > 0 ? secondary : [{ simple: '', specific: '' }]);
+        } else {
+            setName('');
+            setVariation('');
+            setCategories([]);
+            setPrimaryMuscleGroup({ simple: '', specific: '' });
+            setSecondaryMuscleGroups([{ simple: '', specific: '' }]);
+        }
+    }, [exerciseToEdit, isEditMode]);
+
+    useEffect(() => {
+        if (primaryMuscleGroup.simple) {
+            const selectedGroup = muscleGroups.find(group => group.name === primaryMuscleGroup.simple);
+            setSpecificPrimaryOptions(selectedGroup ? selectedGroup.specific : []);
+        } else {
+            setSpecificPrimaryOptions([]);
+        }
+        const newSpecificOptions = secondaryMuscleGroups.map(sg => {
+            if (!sg.simple) return [];
+            const selectedGroup = muscleGroups.find(group => group.name === sg.simple);
+            return selectedGroup ? selectedGroup.specific : [];
+        });
+        setSpecificSecondaryOptions(newSpecificOptions);
+    }, [primaryMuscleGroup, secondaryMuscleGroups]);
+
+    const handleCategoryClick = (category) => setCategories(prev => prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]);
     const handlePrimarySimpleChange = (e) => {
         const simpleGroupName = e.target.value;
         setPrimaryMuscleGroup({ simple: simpleGroupName, specific: '' });
-        const selectedGroup = muscleGroups.find(group => group.name === simpleGroupName);
-        setSpecificPrimaryOptions(selectedGroup ? selectedGroup.specific : []);
     };
     const handleSecondarySimpleChange = (e, index) => {
         const simpleGroupName = e.target.value;
         const updatedGroups = [...secondaryMuscleGroups];
         updatedGroups[index] = { simple: simpleGroupName, specific: '' };
-        setSecondaryMuscleGroups(updatedGroups);
-        const selectedGroup = muscleGroups.find(group => group.name === simpleGroupName);
-        const updatedOptions = [...specificSecondaryOptions];
-        updatedOptions[index] = selectedGroup ? selectedGroup.specific : [];
-        setSpecificSecondaryOptions(updatedOptions);
         if (simpleGroupName && index === secondaryMuscleGroups.length - 1 && secondaryMuscleGroups.length < 3) {
-            setSecondaryMuscleGroups([...updatedGroups, { simple: '', specific: '' }]);
-            setSpecificSecondaryOptions([...updatedOptions, []]);
+            updatedGroups.push({ simple: '', specific: '' });
         }
+        setSecondaryMuscleGroups(updatedGroups);
     };
     const handleSecondarySpecificChange = (e, index) => {
         const specificGroupName = e.target.value;
@@ -49,24 +72,21 @@ function AddExerciseModal({ isOpen, onClose }) {
         e.preventDefault();
         if (isFormInvalid) return;
         const exerciseData = { name, variation, categories, primaryMuscleGroup, secondaryMuscleGroups };
-        const userId = auth.currentUser.uid;
-        const result = await addExerciseToFirestore(exerciseData, userId);
-        if (result.success) {
-            onClose();
-        } else {
-            alert("Failed to add exercise. Please try again.");
-        }
+        const result = isEditMode
+            ? await updateExercise(exerciseToEdit.id, exerciseData)
+            : await addExerciseToFirestore(exerciseData, auth.currentUser.uid);
+        if (result.success) onClose();
+        else alert(`Failed to ${isEditMode ? 'update' : 'add'} exercise.`);
     };
 
     if (!isOpen) return null;
-
     const isFormInvalid = !name || categories.length === 0 || !primaryMuscleGroup.simple;
 
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ background: '#2d3748', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Add a New Exercise</h2>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{isEditMode ? 'Update Exercise' : 'Add a New Exercise'}</h2>
                     <button onClick={onClose} style={{ fontSize: '1.5rem' }}>&times;</button>
                 </div>
 
@@ -132,12 +152,12 @@ function AddExerciseModal({ isOpen, onClose }) {
                     <div style={{ marginTop: '24px', textAlign: 'right' }}>
                         <button type="submit" disabled={isFormInvalid}
                             style={{ padding: '10px 20px', backgroundColor: isFormInvalid ? '#4a5568' : '#3182ce', color: 'white', borderRadius: '8px', cursor: isFormInvalid ? 'not-allowed' : 'pointer' }}>
-                            Add Exercise
+                            {isEditMode ? 'Update Exercise' : 'Add Exercise'}
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
