@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import ActiveSession from './pages/ActiveSession';
 import Routines from './pages/Routines';
 import { auth } from './firebase';
 import './index.css'
@@ -49,6 +50,7 @@ function App() {
               <Route path="/sessions" element={<Sessions />} />
               <Route path="/exercises" element={<Exercises />} />
               <Route path="/routines" element={<Routines />} />
+              <Route path="/session/:sessionId" element={<ActiveSession />} />
               {/* Redirect any other path to the dashboard */}
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
