@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, doc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
 /**
@@ -51,4 +51,20 @@ export const getUserRoutines = (userId, callback) => {
     });
 
     return unsubscribe;
+};
+
+/**
+ * Deletes a routine document from Firestore.
+ * @param {string} routineId - The ID of the document to delete.
+ */
+export const deleteRoutine = async (routineId) => {
+    try {
+        const routineDocRef = doc(db, "routines", routineId);
+        await deleteDoc(routineDocRef);
+        console.log("Routine deleted successfully.");
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting routine:", error);
+        return { success: false, error };
+    }
 };

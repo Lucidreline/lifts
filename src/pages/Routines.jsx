@@ -1,6 +1,7 @@
 import { useUserExercises } from '../hooks/useUserExercises';
 import AddRoutineModal from '../components/AddRoutineModal';
 import { useUserRoutines } from '../hooks/useUserRoutines';
+import { deleteRoutine } from '../utils/routineUtils';
 import RoutineList from '../components/RoutineList';
 import { useState } from 'react';
 
@@ -22,6 +23,12 @@ function Routines() {
         setRoutineToEdit(null);
     };
 
+    const handleDeleteRoutine = async (routineId) => {
+        if (window.confirm("Are you sure you want to delete this routine?")) {
+            await deleteRoutine(routineId);
+        }
+    };
+
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -34,7 +41,7 @@ function Routines() {
             {isLoading ? (
                 <p>Loading routines...</p>
             ) : (
-                <RoutineList routines={routines} />
+                <RoutineList routines={routines} onDelete={handleDeleteRoutine} />
             )}
 
             <AddRoutineModal
