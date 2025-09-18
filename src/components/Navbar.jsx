@@ -15,9 +15,7 @@ function Navbar() {
     return (
         <nav className="bg-gray-800 p-4 shadow-md">
             <div className="container mx-auto flex justify-between items-center">
-                <Link to="/dashboard" className="text-xl font-bold text-white">
-                    Lifts
-                </Link>
+                {/* ... */}
                 <div className="flex items-center space-x-6">
                     <Link to="/dashboard" className="text-gray-300 hover:text-white transition-colors">
                         Dashboard
@@ -27,6 +25,10 @@ function Navbar() {
                     </Link>
                     <Link to="/exercises" className="text-gray-300 hover:text-white transition-colors">
                         Exercises
+                    </Link>
+                    {/* 3. Add the new link */}
+                    <Link to="/routines" className="text-gray-300 hover:text-white transition-colors">
+                        Routines
                     </Link>
                     <button
                         onClick={handleSignOut}
