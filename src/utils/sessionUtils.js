@@ -126,3 +126,26 @@ export const addSetToSession = async (setData, sessionId, userId) => {
         return { success: false, error };
     }
 };
+
+/**
+ * Fetches all sets for a specific session in real-time, sorted by creation time.
+ * @param {string} sessionId - The ID of the session.
+ * @param {function} callback - The function to call with the sets array.
+ * @returns {function} - The unsubscribe function for the listener.
+ */
+export const getSessionSets = (sessionId, callback) => {
+    if (!sessionId) return () => { };
+
+    const setsColRef = collection(db, "sets");
+    const q = query(setsColRef, where("session", "==", sessionId), orderBy("createdAt", "asc"));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const sets = [];
+        querySnapshot.forEach((doc) => {
+            sets.push({ id: doc.id, ...doc.data() });
+        });
+        callback(sets);
+    });
+
+    return unsubscribe;
+};
