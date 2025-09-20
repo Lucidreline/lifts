@@ -84,3 +84,45 @@ export const updateSession = async (sessionId, dataToUpdate) => {
         return { success: false, error };
     }
 };
+
+/**
+ * Creates a new set document and adds its ID to the session's 'sets' array.
+ * @param {object} setData - The data for the new set from the form.
+ * @param {string} sessionId - The ID of the current session.
+ * @param {string} userId - The ID of the current user.
+ */
+export const addSetToSession = async (setData, sessionId, userId) => {
+    try {
+        // 1. Construct the new set document
+        const setDocData = {
+            ...setData,
+            repCount: Number(setData.reps) || 0,
+            weight: Number(setData.weight) || 0,
+            intensity: Number(setData.intensity) || 0,
+            score: (Number(setData.reps) || 0) * (Number(setData.weight) || 0),
+            isPr: false, // We'll handle PR logic later
+            session: sessionId,
+            createdBy: userId,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+        };
+        // Remove the form-specific 'reps' key
+        delete setDocData.reps;
+
+        // 2. Add the new document to the 'sets' collection
+        const setDocRef = await addDoc(collection(db, "sets"), setDocData);
+        console.log("Set created with ID:", setDocRef.id);
+
+        // 3. Update the session document to include the new set's ID
+        const sessionDocRef = doc(db, "sessions", sessionId);
+        await updateDoc(sessionDocRef, {
+            sets: arrayUnion(setDocRef.id)
+        });
+
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error adding set to session:", error);
+        return { success: false, error };
+    }
+};

@@ -1,0 +1,88 @@
+import { useState, useMemo } from 'react';
+import { addSetToSession } from '../utils/sessionUtils';
+import { updateSession } from '../utils/sessionUtils'
+import { auth } from '../firebase';
+
+function AddSetForm({ session, sessionId, availableExercises }) {
+    const [exercise, setExercise] = useState('');
+    const [reps, setReps] = useState('');
+    const [weight, setWeight] = useState('');
+    const [intensity, setIntensity] = useState('');
+    const [notes, setNotes] = useState('');
+
+    const isCollapsed = session?.uiState?.addSetFormCollapsed ?? false;
+
+    const handleToggleCollapse = () => {
+        updateSession(sessionId, { "uiState.addSetFormCollapsed": !isCollapsed });
+    };
+
+    const filteredExercises = useMemo(() => {
+        if (!session?.categories || session.categories.length === 0) {
+            return availableExercises;
+        }
+        return availableExercises.filter(ex =>
+            ex.categories.some(cat => session.categories.includes(cat))
+        );
+    }, [session, availableExercises]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const exerciseName = availableExercises.find(ex => ex.id === exercise)?.name || '';
+        const setData = { exercise, exerciseName, reps, weight, intensity, notes };
+        await addSetToSession(setData, sessionId, auth.currentUser.uid);
+        // Reset form
+        setExercise(''); setReps(''); setWeight(''); setIntensity(''); setNotes('');
+    };
+
+    return (
+        <div style={{ border: '1px solid #4a5568', borderRadius: '8px' }}>
+            {/* Persistent Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', backgroundColor: '#2d3748', borderRadius: isCollapsed ? '8px' : '8px 8px 0 0' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Add a Set</h2>
+                <button onClick={handleToggleCollapse}>
+                    {isCollapsed ? 'Show' : 'Hide'}
+                </button>
+            </div>
+
+            {/* Conditionally Rendered Form */}
+            {!isCollapsed && (
+                <div style={{ padding: '16px' }}>
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {/* All the form JSX is the same as before */}
+                        <div>
+                            <label htmlFor="set-exercise" style={{ display: 'block', marginBottom: '4px' }}>Exercise *</label>
+                            <select id="set-exercise" value={exercise} onChange={(e) => setExercise(e.target.value)} required style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }}>
+                                <option value="">Select an exercise...</option>
+                                {filteredExercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '16px' }}>
+                            <div style={{ flex: 1 }}>
+                                <label htmlFor="set-reps" style={{ display: 'block', marginBottom: '4px' }}>Reps *</label>
+                                <input id="set-reps" type="number" value={reps} onChange={(e) => setReps(e.target.value)} required style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label htmlFor="set-weight" style={{ display: 'block', marginBottom: '4px' }}>Weight (lbs) *</label>
+                                <input id="set-weight" type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)} required style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label htmlFor="set-intensity" style={{ display: 'block', marginBottom: '4px' }}>Intensity (0-10)</label>
+                                <input id="set-intensity" type="number" step="0.1" min="0" max="10" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={{ flex: 1, width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="set-notes" style={{ display: 'block', marginBottom: '4px' }}>Notes</label>
+                            <textarea id="set-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows="3" style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                        </div>
+
+                        <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px', alignSelf: 'flex-end' }}>Add Set</button>
+                    </form>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default AddSetForm;
