@@ -118,9 +118,9 @@ export const addSetToSession = async (setData, sessionId, userId) => {
         await updateDoc(sessionDocRef, {
             sets: arrayUnion(setDocRef.id)
         });
+        await updateDoc(sessionDocRef, { sets: arrayUnion(setDocRef.id) });
 
-        return { success: true };
-
+        return { success: true, newSet: { id: setDocRef.id, ...setDocData } };
     } catch (error) {
         console.error("Error adding set to session:", error);
         return { success: false, error };

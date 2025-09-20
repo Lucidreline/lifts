@@ -1,4 +1,16 @@
-import { collection, updateDoc, addDoc, serverTimestamp, query, where, onSnapshot, doc, deleteDoc } from "firebase/firestore"; // Add new imports
+import {
+    Timestamp,
+    collection,
+    updateDoc,
+    addDoc,
+    serverTimestamp,
+    query,
+    where,
+    onSnapshot,
+    doc,
+    deleteDoc,
+    arrayUnion
+} from "firebase/firestore"; // Add new imports
 
 import { db } from "../firebase";
 
@@ -126,6 +138,53 @@ export const updateExercise = async (exerciseId, exerciseData) => {
 
     } catch (error) {
         console.error("Error updating exercise document: ", error);
+        return { success: false, error };
+    }
+};
+
+
+/**
+ * Checks if a new set is a PR for an exercise and updates the exercise document accordingly.
+ * @param {object} exercise - The full exercise object, including its PR data.
+ * @param {object} newSet - The full new set object that was just created.
+ */
+export const checkAndUpdatePr = async (exercise, newSet) => {
+    try {
+        const currentPr = exercise.pr.currentPr;
+        const newScore = newSet.score;
+
+        if (!currentPr || newScore > currentPr.score) {
+            console.log(`New PR achieved for ${exercise.name}! Score: ${newScore}`);
+
+            const newPrObject = {
+                setId: newSet.id,
+                reps: newSet.repCount,
+                weight: newSet.weight,
+                score: newScore,
+                session: newSet.session,
+                timestamp: Timestamp.now(), // This line needs the import
+            };
+
+            const exerciseUpdateData = {
+                "pr.currentPr": newPrObject
+            };
+
+            if (currentPr) {
+                // Using arrayUnion is safer as it prevents duplicates if run multiple times
+                exerciseUpdateData["pr.pastPrs"] = arrayUnion(currentPr);
+            }
+
+            const exerciseDocRef = doc(db, "exercises", exercise.id);
+            await updateDoc(exerciseDocRef, exerciseUpdateData);
+
+            const setDocRef = doc(db, "sets", newSet.id);
+            await updateDoc(setDocRef, { isPr: true });
+        }
+
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error checking/updating PR:", error);
         return { success: false, error };
     }
 };

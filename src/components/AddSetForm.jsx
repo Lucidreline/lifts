@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { addSetToSession } from '../utils/sessionUtils';
 import { updateSession } from '../utils/sessionUtils'
+import { checkAndUpdatePr } from '../utils/exerciseUtils';
 import { auth } from '../firebase';
 
 function AddSetForm({ session, sessionId, availableExercises }) {
@@ -27,11 +28,22 @@ function AddSetForm({ session, sessionId, availableExercises }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const exerciseName = availableExercises.find(ex => ex.id === exercise)?.name || '';
-        const setData = { exercise, exerciseName, reps, weight, intensity, notes };
-        await addSetToSession(setData, sessionId, auth.currentUser.uid);
-        // Reset form
-        setExercise(''); setReps(''); setWeight(''); setIntensity(''); setNotes('');
+        const exerciseObject = availableExercises.find(ex => ex.id === exercise);
+        if (!exerciseObject) return; // Can't proceed without the full exercise object
+
+        const setData = { exercise, exerciseName: exerciseObject.name, reps, weight, intensity, notes };
+
+        // 2. Add the set and get the new set's data back
+        const result = await addSetToSession(setData, sessionId, auth.currentUser.uid);
+
+        if (result.success) {
+            // 3. If the set was added, check for a PR
+            await checkAndUpdatePr(exerciseObject, result.newSet);
+            // Reset form
+            setExercise(''); setReps(''); setWeight(''); setIntensity(''); setNotes('');
+        } else {
+            alert("Failed to add set.");
+        }
     };
 
     return (
