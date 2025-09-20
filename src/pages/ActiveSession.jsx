@@ -1,30 +1,56 @@
 import { useParams } from 'react-router-dom';
-import { useMemo } from 'react'; // Import useMemo
+import { useMemo } from 'react';
 import { useSession } from '../hooks/useSession';
 import { useUserExercises } from '../hooks/useUserExercises';
 import { useSessionSets } from '../hooks/useSessionSets';
-import { calculateSessionVolume } from '../utils/graphUtils'; // Import our new function
+import { useWeeklySets } from '../hooks/useWeeklySets';
+import { calculateSessionVolume } from '../utils/graphUtils';
+import { updateSession } from '../utils/sessionUtils';
 import SessionMetadata from '../components/SessionMetadata';
+import GraphFilters from '../components/GraphFilters';
+import VolumeGraph from '../components/VolumeGraph';
 import AddSetForm from '../components/AddSetForm';
 import SessionSetList from '../components/SessionSetList';
-import VolumeGraph from '../components/VolumeGraph'
+
 
 function ActiveSession() {
     const { sessionId } = useParams();
     const { session, isLoading: isSessionLoading } = useSession(sessionId);
     const { exercises, isLoading: areExercisesLoading } = useUserExercises();
-    const { sets, isLoading: areSetsLoading } = useSessionSets(sessionId);
+    const { sets: sessionSets, isLoading: areSessionSetsLoading } = useSessionSets(sessionId);
 
-    // Use useMemo to calculate the volume only when sets or exercises change
+    // Memoize the session start date to prevent re-renders
+    const sessionStartDate = useMemo(() => {
+        return session?.startDate?.toDate();
+    }, [session]); // This will only re-calculate when the session object changes
+
+    const { weeklySets, isLoading: isWeeklyLoading } = useWeeklySets(sessionStartDate);
+
+    const graphFilters = session?.uiState?.graphFilters ?? {
+        metric: 'sets',
+        muscleGroup: 'simple',
+        range: 'session'
+    };
+
     const sessionVolume = useMemo(() => {
-        if (sets.length > 0 && exercises.length > 0) {
-            return calculateSessionVolume(sets, exercises);
+        const setsToUse = graphFilters.range === 'week' ? weeklySets : sessionSets;
+        if (setsToUse && exercises.length > 0) {
+            return calculateSessionVolume(
+                setsToUse,
+                exercises,
+                graphFilters.metric,
+                graphFilters.muscleGroup
+            );
         }
-        return {}; // Return empty object if data is not ready
-    }, [sets, exercises]);
+        return {};
+    }, [sessionSets, weeklySets, exercises, graphFilters]);
 
+    const handleFilterChange = (filterName, value) => {
+        const updatePath = `uiState.graphFilters.${filterName}`;
+        updateSession(sessionId, { [updatePath]: value });
+    };
 
-    if (isSessionLoading || areExercisesLoading || areSetsLoading) {
+    if (isSessionLoading || areExercisesLoading || areSessionSetsLoading || isWeeklyLoading) {
         return <p>Loading session...</p>;
     }
 
@@ -40,6 +66,7 @@ function ActiveSession() {
 
             <SessionMetadata session={session} sessionId={sessionId} />
 
+            <GraphFilters filters={graphFilters} onFilterChange={handleFilterChange} />
             <VolumeGraph sessionVolume={sessionVolume} />
 
             <AddSetForm
@@ -51,7 +78,7 @@ function ActiveSession() {
             <SessionSetList
                 session={session}
                 sessionId={sessionId}
-                sets={sets}
+                sets={sessionSets} // Use the renamed variable here
             />
         </div>
     );

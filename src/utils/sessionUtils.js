@@ -1,13 +1,17 @@
 // src/utils/sessionUtils.js
 import {
-    collection, addDoc, serverTimestamp, query,
+    collection,
+    addDoc,
+    serverTimestamp,
+    query,
     where,
     onSnapshot,
     orderBy,
     doc,
     updateDoc,
     arrayUnion,
-    Timestamp
+    Timestamp,
+    getDocs
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -148,4 +152,40 @@ export const getSessionSets = (sessionId, callback) => {
     });
 
     return unsubscribe;
+};
+
+
+/**
+ * Fetches all sets for a user within a given date range.
+ * @param {string} userId - The ID of the user.
+ * @param {Date} sessionDate - The end date of the range (the date of the current session).
+ */
+export const getUserSetsForDateRange = async (userId, sessionDate) => {
+    if (!userId || !sessionDate) return [];
+
+    // Calculate the start date (7 days before the session)
+    const endDate = sessionDate;
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 7);
+
+    const setsColRef = collection(db, "sets");
+    const q = query(
+        setsColRef,
+        where("createdBy", "==", userId),
+        where("createdAt", ">=", startDate),
+        where("createdAt", "<=", endDate)
+    );
+
+    try {
+        const querySnapshot = await getDocs(q);
+        const sets = [];
+        querySnapshot.forEach((doc) => {
+            sets.push({ id: doc.id, ...doc.data() });
+        });
+        return sets;
+    } catch (error) {
+        console.error("Error fetching sets for date range:", error);
+        // This is where you'll see a Firestore index error if one is needed.
+        return [];
+    }
 };
