@@ -4,7 +4,10 @@ import {
     where,
     onSnapshot,
     orderBy,
-    doc
+    doc,
+    updateDoc,
+    arrayUnion,
+    Timestamp
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -68,4 +71,16 @@ export const getSession = (sessionId, callback) => {
     });
 
     return unsubscribe;
+};
+
+export const updateSession = async (sessionId, dataToUpdate) => {
+    try {
+        const sessionDocRef = doc(db, "sessions", sessionId);
+        await updateDoc(sessionDocRef, dataToUpdate);
+        console.log("Session updated successfully.");
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating session:", error);
+        return { success: false, error };
+    }
 };

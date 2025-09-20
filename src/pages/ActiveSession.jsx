@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useSession } from '../hooks/useSession';
+import SessionMetadata from '../components/SessionMetadata';
 
 function ActiveSession() {
     const { sessionId } = useParams();
@@ -15,16 +16,13 @@ function ActiveSession() {
 
     return (
         <div>
-            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Active Workout Session</h1>
-            <p>Session ID: <span style={{ fontFamily: 'monospace' }}>{sessionId}</span></p>
+            <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '24px' }}>
+                Active Workout Session
+            </h1>
 
-            {/* For debugging, we'll display the raw session data for now */}
-            <div style={{ background: '#1a202c', padding: '16px', marginTop: '16px', borderRadius: '8px' }}>
-                <h3 style={{ fontWeight: 'bold' }}>Session Data:</h3>
-                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                    {JSON.stringify(session, null, 2)}
-                </pre>
-            </div>
+            <SessionMetadata session={session} sessionId={sessionId} />
+
+            {/* Other sections like the graph and set entry form will go here later */}
         </div>
     );
 }
