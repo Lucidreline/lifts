@@ -105,6 +105,7 @@ export const addSetToSession = async (setData, sessionId, userId) => {
             intensity: Number(setData.intensity) || 0,
             score: (Number(setData.reps) || 0) * (Number(setData.weight) || 0),
             isPr: false, // We'll handle PR logic later
+            complete: setData.complete,
             session: sessionId,
             createdBy: userId,
             createdAt: Timestamp.now(),
@@ -187,5 +188,16 @@ export const getUserSetsForDateRange = async (userId, sessionDate) => {
         console.error("Error fetching sets for date range:", error);
         // This is where you'll see a Firestore index error if one is needed.
         return [];
+    }
+};
+
+export const updateSet = async (setId, dataToUpdate) => {
+    try {
+        const setDocRef = doc(db, "sets", setId);
+        await updateDoc(setDocRef, dataToUpdate);
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating set:", error);
+        return { success: false, error };
     }
 };

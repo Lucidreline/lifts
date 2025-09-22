@@ -10,6 +10,7 @@ function AddSetForm({ session, sessionId, availableExercises }) {
     const [weight, setWeight] = useState('');
     const [intensity, setIntensity] = useState('');
     const [notes, setNotes] = useState('');
+    const [isComplete, setIsComplete] = useState(true);
 
     const isCollapsed = session?.uiState?.addSetFormCollapsed ?? false;
 
@@ -31,7 +32,7 @@ function AddSetForm({ session, sessionId, availableExercises }) {
         const exerciseObject = availableExercises.find(ex => ex.id === exercise);
         if (!exerciseObject) return; // Can't proceed without the full exercise object
 
-        const setData = { exercise, exerciseName: exerciseObject.name, reps, weight, intensity, notes };
+        const setData = { exercise, exerciseName: exerciseObject.name, reps, weight, intensity, notes, complete: isComplete };
 
         // 2. Add the set and get the new set's data back
         const result = await addSetToSession(setData, sessionId, auth.currentUser.uid);
@@ -41,6 +42,7 @@ function AddSetForm({ session, sessionId, availableExercises }) {
             await checkAndUpdatePr(exerciseObject, result.newSet);
             // Reset form
             setExercise(''); setReps(''); setWeight(''); setIntensity(''); setNotes('');
+            setIsComplete(true);
         } else {
             alert("Failed to add set.");
         }
@@ -87,7 +89,15 @@ function AddSetForm({ session, sessionId, availableExercises }) {
                         <div>
                             <label htmlFor="set-notes" style={{ display: 'block', marginBottom: '4px' }}>Notes</label>
                             <textarea id="set-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows="3" style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                            <input
+                                type="checkbox"
+                                id="is-complete-checkbox"
+                                checked={isComplete}
+                                onChange={(e) => setIsComplete(e.target.checked)}
+                            />
+                            <label htmlFor="is-complete-checkbox">Mark as Complete</label>
                         </div>
+
 
                         <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#3182ce', color: 'white', borderRadius: '8px', alignSelf: 'flex-end' }}>Add Set</button>
                     </form>

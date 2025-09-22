@@ -1,10 +1,14 @@
 import { useNavigate } from 'react-router-dom';
-import { updateSession } from '../utils/sessionUtils'; // Import the update function
+import { updateSession, updateSet } from '../utils/sessionUtils'; // Import the update function
 
 function SessionSetList({ session, sessionId, sets }) {
     const navigate = useNavigate();
 
     const isCollapsed = session?.uiState?.setListCollapsed ?? false;
+
+    const handleToggleComplete = (setId, currentStatus) => {
+        updateSet(setId, { complete: !currentStatus });
+    };
 
     const handleToggleCollapse = () => {
         updateSession(sessionId, { "uiState.setListCollapsed": !isCollapsed });
@@ -52,10 +56,17 @@ function SessionSetList({ session, sessionId, sets }) {
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
                                     padding: '12px 16px',
-                                    borderTop: '1px solid #4a5568'
+                                    borderTop: '1px solid #4a5568',
+                                    color: set.complete ? 'white' : '#a0aec0'
                                 }}
                             >
                                 <div>
+                                    <input
+                                        type="checkbox"
+                                        checked={set.complete}
+                                        onChange={() => handleToggleComplete(set.id, set.complete)}
+                                        style={{ marginRight: '12px' }}
+                                    />
                                     <span style={{ fontWeight: 'bold' }}>{set.exerciseName} {set.isPr && '⭐'}</span>
                                     <p style={{ fontSize: '0.875rem', color: '#a0aec0' }}>{formatTime(set.createdAt)}</p>
                                 </div>
