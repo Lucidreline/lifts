@@ -17,7 +17,7 @@ export const calculateSessionVolume = (sets, allExercises, metric = 'sets', musc
 
     const ensureMuscleGroup = (name) => {
         if (!volumeByMuscleGroup[name]) {
-            volumeByMuscleGroup[name] = { primary: 0, secondary: 0 };
+            volumeByMuscleGroup[name] = { primary: 0, secondary: 0, goal: 0 };
         }
     };
 
@@ -26,23 +26,33 @@ export const calculateSessionVolume = (sets, allExercises, metric = 'sets', musc
 
         if (exercise) {
             const volumeToAdd = metric === 'reps' ? set.repCount : 1;
+            const isGoal = set.complete === false;
 
-            // 1. Process the Primary muscle group
+            // Process Primary muscle group
             const primary = exercise.muscleGroups.primary;
             if (primary && primary[muscleGroupType]) {
                 const groupName = primary[muscleGroupType];
                 ensureMuscleGroup(groupName);
-                volumeByMuscleGroup[groupName].primary += volumeToAdd;
+                if (isGoal) {
+                    volumeByMuscleGroup[groupName].goal += volumeToAdd;
+                } else {
+                    volumeByMuscleGroup[groupName].primary += volumeToAdd;
+                }
             }
 
-            // 2. Process all Secondary muscle groups
+            // Process all Secondary muscle groups
             const secondaries = exercise.muscleGroups.secondary;
             if (secondaries && secondaries.length > 0) {
+                // This loop defines the 'secondary' variable for each item in the 'secondaries' array.
                 for (const secondary of secondaries) {
                     if (secondary && secondary[muscleGroupType]) {
                         const groupName = secondary[muscleGroupType];
                         ensureMuscleGroup(groupName);
-                        volumeByMuscleGroup[groupName].secondary += (volumeToAdd * 0.5);
+                        if (isGoal) {
+                            volumeByMuscleGroup[groupName].goal += (volumeToAdd * 0.5);
+                        } else {
+                            volumeByMuscleGroup[groupName].secondary += (volumeToAdd * 0.5);
+                        }
                     }
                 }
             }

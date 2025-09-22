@@ -33,7 +33,7 @@ function VolumeGraph({ sessionVolume }) {
     };
 
     const filteredVolumeEntries = Object.entries(sessionVolume).filter(
-        ([key, value]) => (value.primary + value.secondary) > 0
+        ([key, value]) => (value.primary + value.secondary + value.goal) > 0
     );
 
     const labels = filteredVolumeEntries.map(([key, value]) => key);
@@ -52,6 +52,11 @@ function VolumeGraph({ sessionVolume }) {
                 label: 'Secondary',
                 data: filteredVolumeEntries.map(([key, value]) => value.secondary),
                 backgroundColor: 'rgba(52, 211, 153, 0.7)', // Emerald Green
+            },
+            {
+                label: 'Goal',
+                data: filteredVolumeEntries.map(([key, value]) => value.goal),
+                backgroundColor: 'rgba(251, 191, 36, 0.7)', // Amber Yellow
             },
         ],
     };
