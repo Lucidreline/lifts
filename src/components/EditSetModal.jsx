@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { updateSet } from '../utils/sessionUtils';
+import { rollbackPr, checkAndUpdatePr } from '../utils/exerciseUtils';
 
 function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session }) {
     // Local state for the form inputs
@@ -8,6 +9,7 @@ function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session 
     const [weight, setWeight] = useState('');
     const [intensity, setIntensity] = useState('');
     const [notes, setNotes] = useState('');
+    const [isComplete, setIsComplete] = useState(true);
 
     // This effect pre-fills the form whenever the set to edit changes
     useEffect(() => {
@@ -17,6 +19,7 @@ function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session 
             setWeight(setToEdit.weight || '');
             setIntensity(setToEdit.intensity || '');
             setNotes(setToEdit.notes || '');
+            setIsComplete(true);
         }
     }, [setToEdit]);
 
@@ -32,21 +35,41 @@ function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const exerciseName = availableExercises.find(ex => ex.id === exercise)?.name || '';
 
+        // --- PR LOGIC ---
+        // 1. If the original set was a PR, we need to roll back the PR on its original exercise.
+        if (setToEdit.isPr) {
+            console.log(`Rolling back PR for original exercise: ${setToEdit.exerciseName}`);
+            await rollbackPr(setToEdit.exercise);
+        }
+
+        // 2. Prepare the updated set data
+        const newScore = (Number(reps) || 0) * (Number(weight) || 0);
         const updatedData = {
             exercise,
-            exerciseName,
+            exerciseName: availableExercises.find(ex => ex.id === exercise)?.name || '',
             repCount: Number(reps) || 0,
             weight: Number(weight) || 0,
             intensity: Number(intensity) || 0,
             notes,
-            score: (Number(reps) || 0) * (Number(weight) || 0),
-            updatedAt: new Date(), // Use new Date() for local updates, serverTimestamp() for creation
+            score: newScore,
+            complete: isComplete,
+            isPr: false,
+            updatedAt: new Date(),
         };
 
+        // 3. Update the set document in Firestore
         await updateSet(setToEdit.id, updatedData);
-        onClose(); // Close the modal after saving
+
+        // 4. Now, check if this UPDATED set is a new PR for its exercise
+        const fullExerciseObject = availableExercises.find(ex => ex.id === exercise);
+        if (fullExerciseObject) {
+            // Construct a temporary 'set' object that matches the structure our PR checker expects
+            const updatedSetForPrCheck = { ...setToEdit, ...updatedData };
+            await checkAndUpdatePr(fullExerciseObject, updatedSetForPrCheck);
+        }
+
+        onClose(); // Close the modal
     };
 
     if (!isOpen) return null;
