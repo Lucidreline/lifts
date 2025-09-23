@@ -4,8 +4,7 @@ import { updateSession } from '../utils/sessionUtils'
 import { checkAndUpdatePr } from '../utils/exerciseUtils';
 import { auth } from '../firebase';
 
-function AddSetForm({ session, sessionId, availableExercises }) {
-    const [exercise, setExercise] = useState('');
+function AddSetForm({ session, sessionId, availableExercises, selectedExercise, onExerciseChange }) {
     const [reps, setReps] = useState('');
     const [weight, setWeight] = useState('');
     const [intensity, setIntensity] = useState('');
@@ -30,26 +29,26 @@ function AddSetForm({ session, sessionId, availableExercises }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isFormInvalid) return;
-        const exerciseObject = availableExercises.find(ex => ex.id === exercise);
-        if (!exerciseObject) return; // Can't proceed without the full exercise object
+        const exerciseObject = availableExercises.find(ex => ex.id === selectedExercise);
+        if (!exerciseObject) return;
 
-        const setData = { exercise, exerciseName: exerciseObject.name, reps, weight, intensity, notes, complete: isComplete };
+        const setData = { exercise: selectedExercise, exerciseName: exerciseObject.name, reps, weight, intensity, notes, complete: isComplete };
 
         // 2. Add the set and get the new set's data back
         const result = await addSetToSession(setData, sessionId, auth.currentUser.uid);
 
         if (result.success) {
-            // 3. If the set was added, check for a PR
             await checkAndUpdatePr(exerciseObject, result.newSet);
-            // Reset form
-            setExercise(''); setReps(''); setWeight(''); setIntensity(''); setNotes('');
+            // Reset form, including the parent's selected exercise state
+            onExerciseChange('');
+            setReps(''); setWeight(''); setIntensity(''); setNotes('');
             setIsComplete(true);
         } else {
             alert("Failed to add set.");
         }
     };
 
-    const isFormInvalid = !exercise || (isComplete && (!reps || !weight));
+    const isFormInvalid = !selectedExercise || (isComplete && (!reps || !weight));
 
     return (
         <div style={{ border: '1px solid #4a5568', borderRadius: '8px' }}>
@@ -65,13 +64,11 @@ function AddSetForm({ session, sessionId, availableExercises }) {
             {!isCollapsed && (
                 <div style={{ padding: '16px' }}>
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {/* All the form JSX is the same as before */}
                         <div>
                             <label htmlFor="set-exercise" style={{ display: 'block', marginBottom: '4px' }}>Exercise *</label>
-                            <select id="set-exercise" value={exercise} onChange={(e) => setExercise(e.target.value)} required style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }}>
+                            <select id="set-exercise" value={selectedExercise} onChange={(e) => onExerciseChange(e.target.value)} required style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }}>
                                 <option value="">Select an exercise...</option>
-                                {filteredExercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-                            </select>
+                                {filteredExercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}                            </select>
                         </div>
 
                         {isComplete && (

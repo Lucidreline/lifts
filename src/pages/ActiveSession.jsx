@@ -14,6 +14,7 @@ import VolumeGraph from '../components/VolumeGraph';
 import AddSetForm from '../components/AddSetForm';
 import SessionSetList from '../components/SessionSetList';
 import EditSetModal from '../components/EditSetModal';
+import ExerciseContext from '../components/ExerciseContext';
 
 function ActiveSession() {
     const { sessionId } = useParams();
@@ -21,6 +22,7 @@ function ActiveSession() {
     const { exercises, isLoading: areExercisesLoading } = useUserExercises();
     const { sets, isLoading: areSetsLoading } = useSessionSets(sessionId);
     const { routines, isLoading: areRoutinesLoading } = useUserRoutines();
+    const [selectedExerciseId, setSelectedExerciseId] = useState('');
 
     // THIS IS THE FIX: Memoize the session start date to prevent re-renders
     const sessionStartDate = useMemo(() => {
@@ -71,7 +73,13 @@ function ActiveSession() {
             <SessionRoutines session={session} sessionId={sessionId} allRoutines={routines} availableExercises={exercises} />
             <GraphFilters filters={graphFilters} onFilterChange={handleFilterChange} />
             <VolumeGraph sessionVolume={sessionVolume} />
-            <AddSetForm session={session} sessionId={sessionId} availableExercises={exercises} />
+            <AddSetForm onExerciseChange={setSelectedExerciseId} selectedExercise={selectedExerciseId} session={session} sessionId={sessionId} availableExercises={exercises} />
+            <ExerciseContext
+                session={session}
+                sessionId={sessionId}
+                selectedExerciseId={selectedExerciseId}
+                allExercises={exercises}
+            />
             <SessionSetList session={session} sessionId={sessionId} sets={sets} onDelete={handleDeleteSet} onEdit={handleOpenEditSetModal} />
             <EditSetModal isOpen={isEditSetModalOpen} onClose={handleCloseEditSetModal} setToEdit={setToEdit} availableExercises={exercises} session={session} />
         </div>

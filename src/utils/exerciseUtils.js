@@ -1,6 +1,5 @@
 import {
     Timestamp,
-    collection,
     updateDoc,
     addDoc,
     serverTimestamp,
@@ -10,8 +9,13 @@ import {
     doc,
     deleteDoc,
     arrayUnion,
-    getDoc
+    getDoc,
+    getDocs,
+    limit,
+    collection,
+    orderBy,
 } from "firebase/firestore"; // Add new imports
+import { auth } from '../firebase';
 
 import { db } from "../firebase";
 
@@ -229,5 +233,37 @@ export const rollbackPr = async (exerciseId) => {
     } catch (error) {
         console.error("Error rolling back PR:", error);
         return { success: false, error };
+    }
+};
+
+/**
+ * Fetches the last 3 completed sets for a specific exercise for the current user.
+ * @param {string} exerciseId - The ID of the exercise.
+ * @returns {Array} - An array of the last 3 set objects.
+ */
+export const getLastSetsForExercise = async (exerciseId) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId || !exerciseId) return [];
+
+    const setsColRef = collection(db, "sets");
+    const q = query(
+        setsColRef,
+        where("createdBy", "==", userId),
+        where("exercise", "==", exerciseId),
+        where("complete", "==", true),
+        orderBy("createdAt", "desc"),
+        limit(3)
+    );
+
+    try {
+        const querySnapshot = await getDocs(q);
+        const sets = [];
+        querySnapshot.forEach((doc) => {
+            sets.push({ id: doc.id, ...doc.data() });
+        });
+        return sets;
+    } catch (error) {
+        console.error("Error fetching last sets for exercise:", error);
+        return [];
     }
 };
