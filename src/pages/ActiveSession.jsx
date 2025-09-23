@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useSession } from '../hooks/useSession';
 import { useUserExercises } from '../hooks/useUserExercises';
 import { useSessionSets } from '../hooks/useSessionSets';
@@ -15,6 +15,7 @@ import AddSetForm from '../components/AddSetForm';
 import SessionSetList from '../components/SessionSetList';
 import EditSetModal from '../components/EditSetModal';
 import ExerciseContext from '../components/ExerciseContext';
+import { rollbackPr } from '../utils/exerciseUtils';
 
 function ActiveSession() {
     const { sessionId } = useParams();
@@ -23,8 +24,8 @@ function ActiveSession() {
     const { sets, isLoading: areSetsLoading } = useSessionSets(sessionId);
     const { routines, isLoading: areRoutinesLoading } = useUserRoutines();
     const [selectedExerciseId, setSelectedExerciseId] = useState('');
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-    // THIS IS THE FIX: Memoize the session start date to prevent re-renders
     const sessionStartDate = useMemo(() => {
         return session?.startDate?.toDate();
     }, [session]);
@@ -33,6 +34,13 @@ function ActiveSession() {
 
     const [isEditSetModalOpen, setIsEditSetModalOpen] = useState(false);
     const [setToEdit, setSetToEdit] = useState(null);
+
+    useEffect(() => {
+        const allDataLoaded = !isSessionLoading && !areExercisesLoading && !areSetsLoading && !isWeeklyLoading && !areRoutinesLoading;
+        if (allDataLoaded) {
+            setIsInitialLoad(false);
+        }
+    }, [isSessionLoading, areExercisesLoading, areSetsLoading, isWeeklyLoading, areRoutinesLoading]);
 
     const graphFilters = session?.uiState?.graphFilters ?? {
         metric: 'sets', muscleGroup: 'simple', range: 'session'
@@ -46,16 +54,31 @@ function ActiveSession() {
         return {};
     }, [sets, weeklySets, exercises, graphFilters]);
 
-    const handleFilterChange = (filterName, value) => {
+    const handleFilterChange = useCallback((filterName, value) => {
         const updatePath = `uiState.graphFilters.${filterName}`;
         updateSession(sessionId, { [updatePath]: value });
-    };
+    }, [sessionId]);
 
-    const handleDeleteSet = async (set) => { /* ... */ };
-    const handleOpenEditSetModal = (set) => { /* ... */ };
-    const handleCloseEditSetModal = () => { /* ... */ };
+    const handleDeleteSet = useCallback(async (set) => {
+        if (window.confirm("Are you sure you want to delete this set?")) {
+            const result = await deleteSet(sessionId, set.id);
+            if (result.success && set.isPr) {
+                await rollbackPr(set.exercise);
+            }
+        }
+    }, [sessionId]);
 
-    if (isSessionLoading || areExercisesLoading || areSetsLoading || isWeeklyLoading || areRoutinesLoading) {
+    const handleOpenEditSetModal = useCallback((set) => {
+        setSetToEdit(set);
+        setIsEditSetModalOpen(true);
+    }, []);
+
+    const handleCloseEditSetModal = useCallback(() => {
+        setIsEditSetModalOpen(false);
+        setSetToEdit(null);
+    }, []);
+
+    if (isInitialLoad) {
         return <p>Loading session...</p>;
     }
 
