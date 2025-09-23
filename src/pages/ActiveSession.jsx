@@ -1,16 +1,19 @@
-import { useParams } from 'react-router-dom';
-import { useMemo } from 'react';
-import { useSession } from '../hooks/useSession';
+import { updateSession, deleteSet } from '../utils/sessionUtils';
 import { useUserExercises } from '../hooks/useUserExercises';
+import { calculateSessionVolume } from '../utils/graphUtils';
+import SessionMetadata from '../components/SessionMetadata';
+import SessionSetList from '../components/SessionSetList';
 import { useSessionSets } from '../hooks/useSessionSets';
 import { useWeeklySets } from '../hooks/useWeeklySets';
-import { calculateSessionVolume } from '../utils/graphUtils';
-import { updateSession } from '../utils/sessionUtils';
-import SessionMetadata from '../components/SessionMetadata';
+import EditSetModal from '../components/EditSetModal';
 import GraphFilters from '../components/GraphFilters';
+import { rollbackPr } from '../utils/exerciseUtils';
 import VolumeGraph from '../components/VolumeGraph';
 import AddSetForm from '../components/AddSetForm';
-import SessionSetList from '../components/SessionSetList';
+import { useSession } from '../hooks/useSession';
+import { useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+
 
 
 function ActiveSession() {
@@ -18,6 +21,8 @@ function ActiveSession() {
     const { session, isLoading: isSessionLoading } = useSession(sessionId);
     const { exercises, isLoading: areExercisesLoading } = useUserExercises();
     const { sets: sessionSets, isLoading: areSessionSetsLoading } = useSessionSets(sessionId);
+    const [isEditSetModalOpen, setIsEditSetModalOpen] = useState(false);
+    const [setToEdit, setSetToEdit] = useState(null);
 
     // Memoize the session start date to prevent re-renders
     const sessionStartDate = useMemo(() => {
@@ -50,6 +55,28 @@ function ActiveSession() {
         updateSession(sessionId, { [updatePath]: value });
     };
 
+    const handleDeleteSet = async (set) => { // Now accepts the full 'set' object
+        if (window.confirm("Are you sure you want to delete this set?")) {
+            // First, delete the set
+            const result = await deleteSet(sessionId, set.id);
+
+            // If deletion was successful AND the set was a PR, trigger the rollback
+            if (result.success && set.isPr) {
+                await rollbackPr(set.exercise); // set.exercise holds the exercise ID
+            }
+        }
+    };
+
+    const handleOpenEditSetModal = (set) => {
+        setSetToEdit(set);
+        setIsEditSetModalOpen(true);
+    };
+
+    const handleCloseEditSetModal = () => {
+        setIsEditSetModalOpen(false);
+        setSetToEdit(null);
+    };
+
     if (isSessionLoading || areExercisesLoading || areSessionSetsLoading || isWeeklyLoading) {
         return <p>Loading session...</p>;
     }
@@ -78,7 +105,17 @@ function ActiveSession() {
             <SessionSetList
                 session={session}
                 sessionId={sessionId}
-                sets={sessionSets} // Use the renamed variable here
+                sets={sessionSets}
+                onDelete={handleDeleteSet}
+                onEdit={handleOpenEditSetModal}
+            />
+
+            <EditSetModal
+                isOpen={isEditSetModalOpen}
+                onClose={handleCloseEditSetModal}
+                setToEdit={setToEdit}
+                availableExercises={exercises}
+                session={session}
             />
         </div>
     );

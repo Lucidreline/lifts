@@ -9,7 +9,8 @@ import {
     onSnapshot,
     doc,
     deleteDoc,
-    arrayUnion
+    arrayUnion,
+    getDoc
 } from "firebase/firestore"; // Add new imports
 
 import { db } from "../firebase";
@@ -185,6 +186,48 @@ export const checkAndUpdatePr = async (exercise, newSet) => {
 
     } catch (error) {
         console.error("Error checking/updating PR:", error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * Rolls back the PR for an exercise when the current PR set is deleted.
+ * @param {string} exerciseId - The ID of the exercise to update.
+ */
+export const rollbackPr = async (exerciseId) => {
+    try {
+        const exerciseDocRef = doc(db, "exercises", exerciseId);
+        const docSnap = await getDoc(exerciseDocRef);
+
+        if (!docSnap.exists()) {
+            throw new Error("Exercise document not found for PR rollback.");
+        }
+
+        const exerciseData = docSnap.data();
+        let pastPrs = exerciseData.pr.pastPrs || [];
+        let newCurrentPr = null;
+
+        if (pastPrs.length > 0) {
+            // Sort past PRs to find the most recent one
+            pastPrs.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+
+            // The new current PR is the first one in the sorted list
+            newCurrentPr = pastPrs[0];
+            // The new pastPrs array is the rest of the list
+            pastPrs = pastPrs.slice(1);
+        }
+
+        // Update the exercise document with the new PR state
+        await updateDoc(exerciseDocRef, {
+            "pr.currentPr": newCurrentPr,
+            "pr.pastPrs": pastPrs
+        });
+
+        console.log(`PR rolled back successfully for exercise ${exerciseId}`);
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error rolling back PR:", error);
         return { success: false, error };
     }
 };

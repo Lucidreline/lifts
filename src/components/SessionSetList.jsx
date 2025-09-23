@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { updateSession, updateSet } from '../utils/sessionUtils'; // Import the update function
 
-function SessionSetList({ session, sessionId, sets }) {
+function SessionSetList({ session, sessionId, sets, onDelete, onEdit }) {
     const navigate = useNavigate();
 
     const isCollapsed = session?.uiState?.setListCollapsed ?? false;
@@ -69,8 +69,14 @@ function SessionSetList({ session, sessionId, sets }) {
                                     />
                                     <span style={{ fontWeight: 'bold' }}>{set.exerciseName} {set.isPr && '⭐'}</span>
                                     <p style={{ fontSize: '0.875rem', color: '#a0aec0' }}>{formatTime(set.createdAt)}</p>
+
                                 </div>
                                 <span style={{ fontFamily: 'monospace' }}>{set.weight}lbs x {set.repCount}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <button onClick={() => onEdit(set)}>Edit</button>
+                                    {/* Call the onDelete prop with the set's ID */}
+                                    <button onClick={() => onDelete(set)}>Delete</button>
+                                </div>
                             </div>
                         ))
                     )}

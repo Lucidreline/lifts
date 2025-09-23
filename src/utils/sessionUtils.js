@@ -11,7 +11,9 @@ import {
     updateDoc,
     arrayUnion,
     Timestamp,
-    getDocs
+    getDocs,
+    deleteDoc,
+    arrayRemove
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -142,7 +144,7 @@ export const getSessionSets = (sessionId, callback) => {
     if (!sessionId) return () => { };
 
     const setsColRef = collection(db, "sets");
-    const q = query(setsColRef, where("session", "==", sessionId), orderBy("createdAt", "asc"));
+    const q = query(setsColRef, where("session", "==", sessionId), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const sets = [];
@@ -198,6 +200,31 @@ export const updateSet = async (setId, dataToUpdate) => {
         return { success: true };
     } catch (error) {
         console.error("Error updating set:", error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * Deletes a set document and removes its ID from the parent session's array.
+ * @param {string} sessionId - The ID of the session containing the set.
+ * @param {string} setId - The ID of the set to delete.
+ */
+export const deleteSet = async (sessionId, setId) => {
+    try {
+        // 1. Delete the set document itself
+        const setDocRef = doc(db, "sets", setId);
+        await deleteDoc(setDocRef);
+
+        // 2. Remove the set's ID from the session's 'sets' array
+        const sessionDocRef = doc(db, "sessions", sessionId);
+        await updateDoc(sessionDocRef, {
+            sets: arrayRemove(setId)
+        });
+
+        console.log("Set deleted successfully.");
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting set:", error);
         return { success: false, error };
     }
 };
