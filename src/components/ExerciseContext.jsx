@@ -51,6 +51,11 @@ function ExerciseContext({ session, sessionId, selectedExerciseId, allExercises 
                                         {selectedExercise.pr.currentPr.weight}lbs x {selectedExercise.pr.currentPr.reps}
                                     </p>
                                 ) : <p>No PR set yet.</p>}
+                                {selectedExercise.repRange && (
+                                    <p style={{ marginTop: '8px' }}>
+                                        <b>Rep Range:</b> {selectedExercise.repRange}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Middle Column: Muscle Groups */}

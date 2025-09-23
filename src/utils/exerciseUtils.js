@@ -45,6 +45,7 @@ export const addExerciseToFirestore = async (exerciseData, userId) => {
             user: userId,
             name: exerciseData.name,
             variation: exerciseData.variation,
+            repRange: exerciseData.repRange,
             categories: exerciseData.categories,
             muscleGroups: muscleGroupsForDb,
             pr: {
@@ -131,6 +132,7 @@ export const updateExercise = async (exerciseId, exerciseData) => {
         const updatedExerciseDoc = {
             name: exerciseData.name,
             variation: exerciseData.variation,
+            repRange: exerciseData.repRange,
             categories: exerciseData.categories,
             muscleGroups: muscleGroupsForDb,
         };

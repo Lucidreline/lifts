@@ -12,6 +12,7 @@ function AddExerciseModal({ isOpen, onClose, exerciseToEdit }) {
     const [secondaryMuscleGroups, setSecondaryMuscleGroups] = useState([{ simple: '', specific: '' }]);
     const [specificPrimaryOptions, setSpecificPrimaryOptions] = useState([]);
     const [specificSecondaryOptions, setSpecificSecondaryOptions] = useState([[]]);
+    const [repRange, setRepRange] = useState('');
 
     const isEditMode = Boolean(exerciseToEdit);
 
@@ -19,6 +20,7 @@ function AddExerciseModal({ isOpen, onClose, exerciseToEdit }) {
         if (isEditMode && exerciseToEdit) {
             setName(exerciseToEdit.name);
             setVariation(exerciseToEdit.variation || '');
+            setRepRange(exerciseToEdit.repRange || '');
             setCategories(exerciseToEdit.categories);
             setPrimaryMuscleGroup(exerciseToEdit.muscleGroups.primary);
             const secondary = exerciseToEdit.muscleGroups.secondary;
@@ -27,6 +29,7 @@ function AddExerciseModal({ isOpen, onClose, exerciseToEdit }) {
             setName('');
             setVariation('');
             setCategories([]);
+            setRepRange('');
             setPrimaryMuscleGroup({ simple: '', specific: '' });
             setSecondaryMuscleGroups([{ simple: '', specific: '' }]);
         }
@@ -71,7 +74,7 @@ function AddExerciseModal({ isOpen, onClose, exerciseToEdit }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isFormInvalid) return;
-        const exerciseData = { name, variation, categories, primaryMuscleGroup, secondaryMuscleGroups };
+        const exerciseData = { name, variation, repRange, categories, primaryMuscleGroup, secondaryMuscleGroups };
         const result = isEditMode
             ? await updateExercise(exerciseToEdit.id, exerciseData)
             : await addExerciseToFirestore(exerciseData, auth.currentUser.uid);
@@ -113,6 +116,12 @@ function AddExerciseModal({ isOpen, onClose, exerciseToEdit }) {
                     <div style={{ marginTop: '16px' }}>
                         <label htmlFor="exercise-variation">Variation</label>
                         <input id="exercise-variation" type="text" value={variation} onChange={(e) => setVariation(e.target.value)}
+                            style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', marginTop: '4px', color: 'white' }} />
+                    </div>
+
+                    <div style={{ marginTop: '16px' }}>
+                        <label htmlFor="exercise-rep-range">Rep Range</label>
+                        <input id="exercise-rep-range" type="text" placeholder="e.g., 8-12" value={repRange} onChange={(e) => setRepRange(e.target.value)}
                             style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', marginTop: '4px', color: 'white' }} />
                     </div>
 
