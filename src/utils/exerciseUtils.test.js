@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { checkAndUpdatePr } from './exerciseUtils';
-import { doc, updateDoc, Timestamp, arrayUnion } from 'firebase/firestore';
+import { checkAndUpdatePr, rollbackPr } from './exerciseUtils';
+import { doc, updateDoc, getDoc, Timestamp, arrayUnion } from 'firebase/firestore';
 
 // ✨ 2. Update the mock to include 'arrayUnion'
 vi.mock('firebase/firestore', async (importOriginal) => {
@@ -9,6 +9,7 @@ vi.mock('firebase/firestore', async (importOriginal) => {
         ...actual,
         doc: vi.fn(),
         updateDoc: vi.fn(),
+        getDoc: vi.fn(),
         arrayUnion: vi.fn(), // We just need to mock that it's a function
         Timestamp: { now: vi.fn(() => ({ seconds: 12345, nanoseconds: 67890 })) },
     };
@@ -78,5 +79,44 @@ describe('checkAndUpdatePr', () => {
 
         // ✨ 4. Check that updateDoc was never called because it wasn't a new PR
         expect(updateDoc).not.toHaveBeenCalled();
+    });
+});
+
+describe('rollbackPr', () => {
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('should promote the most recent past PR to currentPr', async () => {
+        // Define the PRs in stable variables
+        const olderPr = { setId: 'setA', score: 90, timestamp: { seconds: 1000 } };
+        const recentPr = { setId: 'setB', score: 100, timestamp: { seconds: 2000 } };
+        const mockPastPrs = [olderPr, recentPr];
+
+        const mockExerciseData = { pr: { pastPrs: mockPastPrs } };
+
+        getDoc.mockResolvedValue({ exists: () => true, data: () => mockExerciseData });
+
+        await rollbackPr('ex1');
+
+        // Assert using the stable variables, not the potentially mutated array indices
+        expect(updateDoc).toHaveBeenCalledWith(undefined, {
+            "pr.currentPr": recentPr,  // Expect the most recent PR object
+            "pr.pastPrs": [olderPr],   // Expect the older PR object to be what's left
+        });
+    });
+
+    it('should set currentPr to null if there are no past PRs', async () => {
+        // Setup: An exercise with an empty pastPrs array
+        const mockExerciseData = { pr: { pastPrs: [] } };
+        getDoc.mockResolvedValue({ exists: () => true, data: () => mockExerciseData });
+
+        await rollbackPr('ex1');
+
+        expect(updateDoc).toHaveBeenCalledWith(undefined, {
+            "pr.currentPr": null, // currentPr should be cleared
+            "pr.pastPrs": [],   // pastPrs should remain empty
+        });
     });
 });
