@@ -29,6 +29,7 @@ function AddSetForm({ session, sessionId, availableExercises }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isFormInvalid) return;
         const exerciseObject = availableExercises.find(ex => ex.id === exercise);
         if (!exerciseObject) return; // Can't proceed without the full exercise object
 
@@ -47,6 +48,8 @@ function AddSetForm({ session, sessionId, availableExercises }) {
             alert("Failed to add set.");
         }
     };
+
+    const isFormInvalid = !exercise || (isComplete && (!reps || !weight));
 
     return (
         <div style={{ border: '1px solid #4a5568', borderRadius: '8px' }}>
@@ -71,20 +74,22 @@ function AddSetForm({ session, sessionId, availableExercises }) {
                             </select>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '16px' }}>
-                            <div style={{ flex: 1 }}>
-                                <label htmlFor="set-reps" style={{ display: 'block', marginBottom: '4px' }}>Reps *</label>
-                                <input id="set-reps" type="number" value={reps} onChange={(e) => setReps(e.target.value)} required style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                        {isComplete && (
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label htmlFor="set-reps" style={{ display: 'block', marginBottom: '4px' }}>Reps *</label>
+                                    <input id="set-reps" type="number" value={reps} onChange={(e) => setReps(e.target.value)} required={isComplete} style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label htmlFor="set-weight" style={{ display: 'block', marginBottom: '4px' }}>Weight (lbs) *</label>
+                                    <input id="set-weight" type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)} required={isComplete} style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label htmlFor="set-intensity" style={{ display: 'block', marginBottom: '4px' }}>Intensity (0-10)</label>
+                                    <input id="set-intensity" type="number" step="0.1" min="0" max="10" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={{ flex: 1, width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                                </div>
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <label htmlFor="set-weight" style={{ display: 'block', marginBottom: '4px' }}>Weight (lbs) *</label>
-                                <input id="set-weight" type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)} required style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <label htmlFor="set-intensity" style={{ display: 'block', marginBottom: '4px' }}>Intensity (0-10)</label>
-                                <input id="set-intensity" type="number" step="0.1" min="0" max="10" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={{ flex: 1, width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
-                            </div>
-                        </div>
+                        )}
 
                         <div>
                             <label htmlFor="set-notes" style={{ display: 'block', marginBottom: '4px' }}>Notes</label>
