@@ -1,19 +1,20 @@
 // src/utils/sessionUtils.js
 import {
-    collection,
-    addDoc,
     serverTimestamp,
+    arrayRemove,
+    onSnapshot,
+    collection,
+    arrayUnion,
+    updateDoc,
+    Timestamp,
+    writeBatch,
+    deleteDoc,
+    getDocs,
+    orderBy,
+    addDoc,
     query,
     where,
-    onSnapshot,
-    orderBy,
-    doc,
-    updateDoc,
-    arrayUnion,
-    Timestamp,
-    getDocs,
-    deleteDoc,
-    arrayRemove
+    doc
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -225,6 +226,64 @@ export const deleteSet = async (sessionId, setId) => {
         return { success: true };
     } catch (error) {
         console.error("Error deleting set:", error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * Adds all exercises from a routine as new, incomplete sets to a session.
+ * @param {object} routine - The full routine object.
+ * @param {string} sessionId - The ID of the current session.
+ * @param {string} userId - The ID of the current user.
+ * @param {Array} allExercises - The user's full list of exercise objects.
+ */
+export const addRoutineToSession = async (routine, sessionId, userId, allExercises) => {
+    try {
+        // 1. Start a new batch
+        const batch = writeBatch(db);
+        const newSetIds = [];
+
+        // 2. Loop through each exercise ID in the routine
+        for (const exerciseId of routine.exercises) {
+            const newSetRef = doc(collection(db, "sets")); // Create a reference for a new set
+            newSetIds.push(newSetRef.id);
+
+            // Find the full exercise object to get its name
+            const exerciseDetails = allExercises.find(ex => ex.id === exerciseId);
+
+            const newSetData = {
+                complete: false, // These sets start as incomplete
+                createdAt: serverTimestamp(),
+                createdBy: userId,
+                exercise: exerciseId,
+                exerciseName: exerciseDetails?.name || 'Unknown Exercise',
+                intensity: 0,
+                isPr: false,
+                notes: '',
+                repCount: 0,
+                score: 0,
+                session: sessionId,
+                weight: 0,
+                updatedAt: serverTimestamp(),
+            };
+
+            // 3. Add the 'set' operation to the batch
+            batch.set(newSetRef, newSetData);
+        }
+
+        // 4. Add the 'update' operation to the batch to link all new sets to the session
+        const sessionDocRef = doc(db, "sessions", sessionId);
+        batch.update(sessionDocRef, {
+            sets: arrayUnion(...newSetIds)
+        });
+
+        // 5. Commit all operations at once
+        await batch.commit();
+        console.log("Routine successfully added to session.");
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error adding routine to session:", error);
         return { success: false, error };
     }
 };
