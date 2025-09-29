@@ -1,12 +1,47 @@
-# Stage 1: Build for both ARM64 and AMD64
-FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+# syntax=docker/dockerfile:1.4
+
+###############################################################################
+# 1) Builder image: compile your React / Vite app + inject prod env variables #
+###############################################################################
+
+FROM --platform=$BUILDPLATFORM node:18-alpine AS builder
+
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
+
+# Define ARGs so Docker can pass in build-time secrets to Vite
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_FIREBASE_AUTH_DOMAIN
+ARG VITE_FIREBASE_PROJECT_ID
+ARG VITE_FIREBASE_STORAGE_BUCKET
+ARG VITE_FIREBASE_MESSAGING_SENDER_ID
+ARG VITE_FIREBASE_APP_ID
+ARG VITE_FIREBASE_MEASUREMENT_ID
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY . .
-RUN npm install && npm run build
 
-# Stage 2: Nginx static server
-FROM nginx:stable-alpine as production
+# Pass the ARGs as environment variables directly to the build command
+RUN VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY \
+    VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN \
+    VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID \
+    VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET \
+    VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID \
+    VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID \
+    npm run build
 
+
+###############################################################################
+# 2) Production image: serve the built SPA with nginx                         #
+###############################################################################
+
+FROM nginx:alpine
+
+RUN rm /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
