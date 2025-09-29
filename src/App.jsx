@@ -44,6 +44,7 @@ function App() {
       {user ? (
         <>
           <Navbar />
+          <h1>Hey can you see me?</h1>
           <main className="container mx-auto p-4">
             <Routes>
               <Route path="/dashboard" element={<Dashboard />} />
