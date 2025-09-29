@@ -40,8 +40,10 @@ RUN VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY \
 
 FROM nginx:alpine
 
-RUN rm /etc/nginx/conf.d/default.conf
+# Copy the built assets to the web server's root directory
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy the site-specific Nginx config to the correct directory
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
