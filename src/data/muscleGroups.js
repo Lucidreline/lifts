@@ -42,6 +42,10 @@ const muscleGroups = [
     {
         name: "Forearms",
         specific: ["All Forearms", "Forearm Flexors", "Forearm Extensors"]
+    },
+    {
+        name: "Thighs",
+        specific: ["All Thighs", "Adductors"]
     }
 ];
 

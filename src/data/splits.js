@@ -1,3 +1,3 @@
-const splits = ["Push", "Legs", "Pull"]
+const splits = ["Upper", "Lower"]
 
 export default splits
