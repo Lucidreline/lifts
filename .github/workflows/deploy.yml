@@ -32,7 +32,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: |
-            lucidreline/kitties:latest
+            lucidreline/lifts:latest
 
   deploy:
     name: 🚀 Deploy to k3s via SSH
@@ -50,7 +50,7 @@ jobs:
             set -e
             echo "::group::🚀 Deploying to k3s"
             export KUBECONFIG=~/kubeconfig
-            kubectl set image deployment/kitties kitties=lucidreline/kitties:latest
-            kubectl rollout restart deployment/kitties
-            kubectl rollout status deployment/kitties --timeout=15m
+            kubectl set image deployment/lifts lifts=lucidreline/lifts:latest
+            kubectl rollout restart deployment/lifts
+            kubectl rollout status deployment/lifts --timeout=15m
             echo "::endgroup::"
