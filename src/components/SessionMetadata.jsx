@@ -33,43 +33,68 @@ function SessionMetadata({ session, sessionId }) {
         updateSession(sessionId, { categories: newCategories });
     };
 
+    // ✨ Refactored the entire JSX block to use Tailwind CSS instead of inline styles 💅
     return (
-        <div style={{ border: '1px solid #4a5568', borderRadius: '8px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', backgroundColor: '#2d3748', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Metadata</h2>
-                <button onClick={handleToggleCollapse}>
+        <div className="border border-slate-700 rounded-lg mb-6 bg-slate-800/50 text-slate-300">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 bg-slate-800 rounded-t-lg">
+                <h2 className="text-xl font-bold text-white">Metadata</h2>
+                <button
+                    onClick={handleToggleCollapse}
+                    className="px-3 py-1 text-sm font-semibold bg-slate-600 text-white rounded hover:bg-slate-500 transition-colors"
+                >
                     {isCollapsed ? 'Show' : 'Hide'}
                 </button>
             </div>
 
+            {/* Collapsible Content */}
             {!isCollapsed && (
-                <div style={{ padding: '16px' }}>
+                <div className="p-4">
                     {/* Categories */}
-                    <div style={{ marginBottom: '16px' }}>
-                        <label>Session Categories</label>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-                            {splits.map((split) => (<button key={split} type="button" onClick={() => handleCategoryClick(split)} style={{ padding: '8px', border: '1px solid #4a5568', borderRadius: '8px', backgroundColor: categories.includes(split) ? '#4299e1' : 'transparent', color: 'white' }}>{split}</button>))}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">Session Categories</label>
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                            {splits.map((split) => (
+                                <button
+                                    key={split}
+                                    type="button"
+                                    onClick={() => handleCategoryClick(split)}
+                                    className={`px-3 py-1.5 text-sm border rounded-md transition-colors ${categories.includes(split)
+                                            ? 'bg-blue-600 border-blue-500 text-white'
+                                            : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'
+                                        }`}
+                                >
+                                    {split}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
                     {/* Bodyweight */}
-                    <div style={{ marginBottom: '16px' }}>
-                        <label htmlFor="bodyweight">Bodyweight (lbs)</label>
-                        <input id="bodyweight" type="number" value={bodyweight}
+                    <div className="mb-4">
+                        <label htmlFor="bodyweight" className="block text-sm font-medium mb-1">Bodyweight (lbs)</label>
+                        <input
+                            id="bodyweight"
+                            type="number"
+                            value={bodyweight}
                             onChange={(e) => setBodyweight(e.target.value)}
                             onBlur={() => updateSession(sessionId, { bodyweight: Number(bodyweight) || 0 })}
-                            style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', marginTop: '4px', color: 'white' }}
+                            className="w-full p-2 bg-slate-700 border border-slate-600 rounded mt-1 text-white placeholder-slate-400"
+                            placeholder="Enter bodyweight..."
                         />
                     </div>
 
                     {/* Session Notes */}
                     <div>
-                        <label htmlFor="notes">Session Notes</label>
-                        <textarea id="notes" value={notes}
+                        <label htmlFor="notes" className="block text-sm font-medium mb-1">Session Notes</label>
+                        <textarea
+                            id="notes"
+                            value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             onBlur={() => updateSession(sessionId, { notes: notes })}
                             rows="4"
-                            style={{ width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', marginTop: '4px', color: 'white' }}
+                            className="w-full p-2 bg-slate-700 border border-slate-600 rounded mt-1 text-white placeholder-slate-400"
+                            placeholder="Add any notes for this session..."
                         />
                     </div>
                 </div>
