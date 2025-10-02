@@ -10,6 +10,8 @@ function AddSetForm({ session, sessionId, availableExercises, selectedExercise, 
     const [intensity, setIntensity] = useState('');
     const [notes, setNotes] = useState('');
     const [isComplete, setIsComplete] = useState(true);
+    const rememberExercise = session?.uiState?.rememberExercise ?? false;
+    const rememberWeight = session?.uiState?.rememberWeight ?? false;
 
     const isCollapsed = session?.uiState?.addSetFormCollapsed ?? false;
 
@@ -39,13 +41,25 @@ function AddSetForm({ session, sessionId, availableExercises, selectedExercise, 
 
         if (result.success) {
             await checkAndUpdatePr(exerciseObject, result.newSet);
-            // Reset form, including the parent's selected exercise state
-            onExerciseChange('');
-            setReps(''); setWeight(''); setIntensity(''); setNotes('');
+            // Conditionally reset form based on preferences
+            if (!rememberExercise) {
+                onExerciseChange('');
+            }
+            if (!rememberWeight) {
+                setWeight('');
+            }
+            // Always reset these fields
+            setReps('');
+            setIntensity('');
+            setNotes('');
             setIsComplete(true);
         } else {
             alert("Failed to add set.");
         }
+    };
+
+    const handlePreferenceChange = (key, value) => {
+        updateSession(sessionId, { [`uiState.${key}`]: value });
     };
 
     const isFormInvalid = !selectedExercise || (isComplete && (!reps || !weight));
@@ -98,6 +112,27 @@ function AddSetForm({ session, sessionId, availableExercises, selectedExercise, 
                                 onChange={(e) => setIsComplete(e.target.checked)}
                             />
                             <label htmlFor="is-complete-checkbox">Mark as Complete</label>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '24px', alignSelf: 'flex-end', alignItems: 'center' }}>
+                            <div>
+                                <input
+                                    type="checkbox"
+                                    id="remember-exercise"
+                                    checked={rememberExercise}
+                                    onChange={(e) => handlePreferenceChange('rememberExercise', e.target.checked)}
+                                />
+                                <label htmlFor="remember-exercise" style={{ marginLeft: '8px' }}>Remember Exercise</label>
+                            </div>
+                            <div>
+                                <input
+                                    type="checkbox"
+                                    id="remember-weight"
+                                    checked={rememberWeight}
+                                    onChange={(e) => handlePreferenceChange('rememberWeight', e.target.checked)}
+                                />
+                                <label htmlFor="remember-weight" style={{ marginLeft: '8px' }}>Remember Weight</label>
+                            </div>
                         </div>
 
 
