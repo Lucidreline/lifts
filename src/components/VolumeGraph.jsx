@@ -36,6 +36,12 @@ function VolumeGraph({ sessionVolume }) {
         ([key, value]) => (value.primary + value.secondary + value.goal) > 0
     );
 
+    filteredVolumeEntries.sort(([, a], [, b]) => {
+        const totalA = a.primary + a.secondary + a.goal;
+        const totalB = b.primary + b.secondary + b.goal;
+        return totalB - totalA; // Sorts in descending order
+    });
+
     const labels = filteredVolumeEntries.map(([key, value]) => key);
 
     const data = {

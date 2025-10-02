@@ -83,7 +83,7 @@ function AddSetForm({ session, sessionId, availableExercises, selectedExercise, 
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <label htmlFor="set-intensity" style={{ display: 'block', marginBottom: '4px' }}>Intensity (0-10)</label>
-                                    <input id="set-intensity" type="number" step="0.1" min="0" max="10" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={{ flex: 1, width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                                    <input id="set-intensity" type="number" step="0.01" min="0" max="10" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={{ flex: 1, width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
                                 </div>
                             </div>
                         )}
