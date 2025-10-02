@@ -8,6 +8,7 @@ import {
     Legend,
 } from 'chart.js';
 import { updateSession } from '../utils/sessionUtils';
+import GraphFilters from './GraphFilters';
 import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(
@@ -19,7 +20,7 @@ ChartJS.register(
     Legend
 );
 
-function VolumeGraph({ sessionVolume, session, sessionId }) {
+function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChange }) {
 
     const isCollapsed = session?.uiState?.graphCollapsed ?? false;
 
@@ -86,9 +87,9 @@ function VolumeGraph({ sessionVolume, session, sessionId }) {
                 </button>
             </div>
 
-            {/* Conditionally Rendered Graph */}
             {!isCollapsed && (
-                <div style={{ padding: '16px' }}>
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <GraphFilters filters={filters} onFilterChange={onFilterChange} />
                     <Bar options={options} data={data} />
                 </div>
             )}
