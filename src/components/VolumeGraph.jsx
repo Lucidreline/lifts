@@ -31,6 +31,7 @@ function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChang
 
     const options = {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: { position: 'top' },
             title: { display: true, text: 'Session Volume' },
@@ -77,6 +78,10 @@ function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChang
         ],
     };
 
+    const MIN_BAR_WIDTH_PX = 50; // The minimum width for each bar in pixels. Adjust if needed.
+    const CHART_PADDING_PX = 20; // Some extra padding on the sides.
+    const chartMinWidth = (labels.length * MIN_BAR_WIDTH_PX) + CHART_PADDING_PX;
+
     return (
         <div style={{ border: '1px solid #4a5568', borderRadius: '8px' }}>
             {/* Persistent Header */}
@@ -90,7 +95,12 @@ function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChang
             {!isCollapsed && (
                 <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <GraphFilters filters={filters} onFilterChange={onFilterChange} />
-                    <Bar options={options} data={data} />
+                    <div style={{ overflowX: 'auto' }}>
+                        {/* This inner div sets the minimum width and a fixed height for the canvas */}
+                        <div style={{ position: 'relative', minWidth: `${chartMinWidth}px`, height: '400px' }}>
+                            <Bar options={options} data={data} />
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
