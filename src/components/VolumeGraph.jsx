@@ -7,6 +7,7 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
+import { updateSession } from '../utils/sessionUtils';
 import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(
@@ -18,7 +19,15 @@ ChartJS.register(
     Legend
 );
 
-function VolumeGraph({ sessionVolume }) {
+function VolumeGraph({ sessionVolume, session, sessionId }) {
+
+    const isCollapsed = session?.uiState?.graphCollapsed ?? false;
+
+    const handleToggleCollapse = () => {
+        if (!sessionId) return;
+        updateSession(sessionId, { "uiState.graphCollapsed": !isCollapsed });
+    };
+
     const options = {
         responsive: true,
         plugins: {
@@ -67,7 +76,24 @@ function VolumeGraph({ sessionVolume }) {
         ],
     };
 
-    return <Bar options={options} data={data} />;
+    return (
+        <div style={{ border: '1px solid #4a5568', borderRadius: '8px' }}>
+            {/* Persistent Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', backgroundColor: '#2d3748', borderRadius: isCollapsed ? '8px' : '8px 8px 0 0' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Session Volume Analysis</h2>
+                <button onClick={handleToggleCollapse}>
+                    {isCollapsed ? 'Show' : 'Hide'}
+                </button>
+            </div>
+
+            {/* Conditionally Rendered Graph */}
+            {!isCollapsed && (
+                <div style={{ padding: '16px' }}>
+                    <Bar options={options} data={data} />
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default VolumeGraph;
