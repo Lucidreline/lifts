@@ -17,6 +17,29 @@ function AddExerciseModal({ isOpen, onClose, exerciseToEdit }) {
     const isEditMode = Boolean(exerciseToEdit);
 
     useEffect(() => {
+        // ✨ We only want to run this logic when the modal is visible.
+        if (isOpen) {
+            if (isEditMode && exerciseToEdit) {
+                setName(exerciseToEdit.name);
+                setVariation(exerciseToEdit.variation || '');
+                setRepRange(exerciseToEdit.repRange || '');
+                setCategories(exerciseToEdit.categories);
+                setPrimaryMuscleGroup(exerciseToEdit.muscleGroups.primary);
+                const secondary = exerciseToEdit.muscleGroups.secondary;
+                setSecondaryMuscleGroups(secondary.length > 0 ? secondary : [{ simple: '', specific: '' }]);
+            } else {
+                // This 'else' block now correctly runs every time you open the modal to add a new exercise.
+                setName('');
+                setVariation('');
+                setCategories([]);
+                setRepRange('');
+                setPrimaryMuscleGroup({ simple: '', specific: '' });
+                setSecondaryMuscleGroups([{ simple: '', specific: '' }]);
+            }
+        }
+    }, [exerciseToEdit, isEditMode, isOpen]);
+
+    useEffect(() => {
         if (isEditMode && exerciseToEdit) {
             setName(exerciseToEdit.name);
             setVariation(exerciseToEdit.variation || '');
