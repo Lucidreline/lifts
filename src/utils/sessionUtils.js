@@ -16,6 +16,7 @@ import {
     where,
     doc
 } from "firebase/firestore";
+import { rollbackPr } from './exerciseUtils';
 import { calculateSetScore } from './exerciseUtils';
 import { db } from "../firebase";
 
@@ -285,6 +286,50 @@ export const addRoutineToSession = async (routine, sessionId, userId, allExercis
 
     } catch (error) {
         console.error("Error adding routine to session:", error);
+        return { success: false, error };
+    }
+};
+
+/**
+ * Deletes a session and all of its associated sets from Firestore,
+ * rolling back any PRs that were part of the session.
+ * @param {string} sessionId - The ID of the session to delete.
+ */
+export const deleteSession = async (sessionId) => {
+    try {
+        // 1. Find all sets belonging to the session
+        const setsColRef = collection(db, "sets");
+        const q = query(setsColRef, where("session", "==", sessionId));
+        const setsSnapshot = await getDocs(q);
+
+        // 2. Roll back PRs for any sets that were a PR
+        // We use a for...of loop here to properly handle the async 'await' call
+        for (const setDoc of setsSnapshot.docs) {
+            const setData = setDoc.data();
+            if (setData.isPr) {
+                console.log(`Rolling back PR for exercise: ${setData.exerciseName}`);
+                await rollbackPr(setData.exercise);
+            }
+        }
+
+        // 3. Use a batch to delete all documents efficiently
+        const batch = writeBatch(db);
+
+        setsSnapshot.forEach((doc) => {
+            batch.delete(doc.ref); // Add each set to the delete batch
+        });
+
+        const sessionDocRef = doc(db, "sessions", sessionId);
+        batch.delete(sessionDocRef); // Add the session itself to the delete batch
+
+        // 4. Commit the batch
+        await batch.commit();
+
+        console.log(`Session ${sessionId} and all its sets were deleted successfully.`);
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error deleting session and rolling back PRs:", error);
         return { success: false, error };
     }
 };

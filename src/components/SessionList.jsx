@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-function SessionList({ sessions }) {
+function SessionList({ sessions, onDelete }) {
     const navigate = useNavigate();
 
     const handleView = (sessionId) => {
@@ -30,8 +30,7 @@ function SessionList({ sessions }) {
                     </span>
                     <div>
                         <button onClick={() => handleView(session.id)} style={{ marginRight: '8px' }}>View</button>
-                        <button>Delete</button>
-                    </div>
+                        <button onClick={() => onDelete(session.id)}>Delete</button>                    </div>
                 </div>
             ))}
         </div>
