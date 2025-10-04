@@ -149,6 +149,22 @@ export const updateExercise = async (exerciseId, exerciseData) => {
     }
 };
 
+/**
+ * Calculates the score for a set. Treats weight of 0 as 1 for bodyweight exercises.
+ * @param {number|string} reps - The number of repetitions.
+ * @param {number|string} weight - The weight used.
+ * @returns {number} The calculated score.
+ */
+export const calculateSetScore = (reps, weight) => {
+    const numericWeight = Number(weight) || 0;
+    const numericReps = Number(reps) || 0;
+
+    // If weight is 0, use 1 for calculation, otherwise use the actual weight.
+    const effectiveWeight = numericWeight > 0 ? numericWeight : 1;
+
+    return numericReps * effectiveWeight;
+};
+
 
 /**
  * Checks if a new set is a PR for an exercise and updates the exercise document accordingly.

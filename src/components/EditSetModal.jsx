@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { updateSet } from '../utils/sessionUtils';
-import { rollbackPr, checkAndUpdatePr } from '../utils/exerciseUtils';
+import { calculateSetScore, rollbackPr, checkAndUpdatePr } from '../utils/exerciseUtils';
 
 function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session }) {
     // Local state for the form inputs
@@ -44,7 +44,7 @@ function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session 
         }
 
         // 2. Prepare the updated set data
-        const newScore = (Number(reps) || 0) * (Number(weight) || 0);
+        const newScore = calculateSetScore(reps, weight);
         const updatedData = {
             exercise,
             exerciseName: availableExercises.find(ex => ex.id === exercise)?.name || '',

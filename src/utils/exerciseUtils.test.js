@@ -120,3 +120,23 @@ describe('rollbackPr', () => {
         });
     });
 });
+
+it('should set a PR for bodyweight exercises where weight is 0', async () => {
+    const mockExercise = {
+        id: 'ex-pullup',
+        name: 'Pull-ups',
+        pr: { currentPr: null, pastPrs: [] }
+    };
+    // For 25 reps at 0 weight, the score should be 25 * 1 = 25.
+    const mockNewSet = { id: 'set-bw', score: 25, repCount: 25, weight: 0, session: 'session1' };
+
+    await checkAndUpdatePr(mockExercise, mockNewSet);
+
+    // Expect the exercise PR to be updated
+    expect(updateDoc).toHaveBeenCalledWith(undefined, {
+        "pr.currentPr": expect.objectContaining({ score: 25, setId: 'set-bw' })
+    });
+
+    // Expect the set to be marked as a PR
+    expect(updateDoc).toHaveBeenCalledWith(undefined, { isPr: true });
+});

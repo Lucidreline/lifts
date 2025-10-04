@@ -16,6 +16,7 @@ import {
     where,
     doc
 } from "firebase/firestore";
+import { calculateSetScore } from './exerciseUtils';
 import { db } from "../firebase";
 
 export const createNewSession = async (userId) => {
@@ -106,7 +107,7 @@ export const addSetToSession = async (setData, sessionId, userId) => {
             repCount: Number(setData.reps) || 0,
             weight: Number(setData.weight) || 0,
             intensity: Number(setData.intensity) || 0,
-            score: (Number(setData.reps) || 0) * (Number(setData.weight) || 0),
+            score: calculateSetScore(setData.reps, setData.weight),
             isPr: false, // We'll handle PR logic later
             complete: setData.complete,
             session: sessionId,
