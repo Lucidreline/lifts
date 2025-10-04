@@ -34,7 +34,7 @@ function SessionSetList({ session, sessionId, sets, onDelete, onEdit }) {
         <div style={{ border: '1px solid #4a5568', borderRadius: '8px' }}>
             {/* Persistent Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', backgroundColor: '#2d3748', borderRadius: isCollapsed && sets.length > 0 ? '8px' : '8px 8px 0 0' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Sets</h2>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{`Sets (${sets.length})`}</h2>
                 <button onClick={handleToggleCollapse}>
                     {isCollapsed ? 'Show' : 'Hide'}
                 </button>
