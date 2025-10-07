@@ -8,20 +8,21 @@ import { db } from "../firebase";
  */
 export const addRoutineToFirestore = async (routineData, userId) => {
     try {
-        // Transform the array of full exercise objects into an array of just their IDs for storage.
-        const exerciseIds = routineData.selectedExercises.map(ex => ex.id);
+        // Create an array of objects, each with the exercise ID and its order (index)
+        const exercisesWithOrder = routineData.selectedExercises.map((ex, index) => ({
+            exerciseId: ex.id,
+            order: index
+        }));
 
-        // Construct the final document to be saved.
         const routineDoc = {
             user: userId,
             name: routineData.routineName,
             categories: routineData.routineCategories,
-            exercises: exerciseIds, // Save the array of IDs
+            exercises: exercisesWithOrder, // Save the new array of objects
             createdDate: serverTimestamp(),
         };
 
-        const docRef = await addDoc(collection(db, "routines"), routineDoc);
-        console.log("Routine document written with ID: ", docRef.id);
+        await addDoc(collection(db, "routines"), routineDoc);
         return { success: true };
 
     } catch (error) {
@@ -76,18 +77,20 @@ export const deleteRoutine = async (routineId) => {
  */
 export const updateRoutine = async (routineId, routineData) => {
     try {
-        const exerciseIds = routineData.selectedExercises.map(ex => ex.id);
+        // Do the same transformation for the update function
+        const exercisesWithOrder = routineData.selectedExercises.map((ex, index) => ({
+            exerciseId: ex.id,
+            order: index
+        }));
 
         const updatedRoutineDoc = {
             name: routineData.routineName,
             categories: routineData.routineCategories,
-            exercises: exerciseIds,
+            exercises: exercisesWithOrder,
         };
 
         const routineDocRef = doc(db, "routines", routineId);
         await updateDoc(routineDocRef, updatedRoutineDoc);
-
-        console.log("Routine document updated successfully.");
         return { success: true };
 
     } catch (error) {

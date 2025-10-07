@@ -147,6 +147,7 @@ export const getSessionSets = (sessionId, callback) => {
     if (!sessionId) return () => { };
 
     const setsColRef = collection(db, "sets");
+    // We only need to sort by creation time, newest first.
     const q = query(setsColRef, where("session", "==", sessionId), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -241,23 +242,23 @@ export const deleteSet = async (sessionId, setId) => {
  */
 export const addRoutineToSession = async (routine, sessionId, userId, allExercises) => {
     try {
-        // 1. Start a new batch
         const batch = writeBatch(db);
         const newSetIds = [];
 
-        // 2. Loop through each exercise ID in the routine
-        for (const exerciseId of routine.exercises) {
-            const newSetRef = doc(collection(db, "sets")); // Create a reference for a new set
+        // Loop through the new array of exercise objects
+        for (const exercise of routine.exercises) {
+            const newSetRef = doc(collection(db, "sets"));
             newSetIds.push(newSetRef.id);
 
             // Find the full exercise object to get its name
-            const exerciseDetails = allExercises.find(ex => ex.id === exerciseId);
+            const exerciseDetails = allExercises.find(ex => ex.id === exercise.exerciseId);
 
             const newSetData = {
-                complete: false, // These sets start as incomplete
+                order: exercise.order, // <-- Use the explicit order from the routine
+                complete: false,
                 createdAt: serverTimestamp(),
                 createdBy: userId,
-                exercise: exerciseId,
+                exercise: exercise.exerciseId, // <-- Use the ID from the object
                 exerciseName: exerciseDetails?.name || 'Unknown Exercise',
                 intensity: 0,
                 isPr: false,
@@ -269,19 +270,15 @@ export const addRoutineToSession = async (routine, sessionId, userId, allExercis
                 updatedAt: serverTimestamp(),
             };
 
-            // 3. Add the 'set' operation to the batch
             batch.set(newSetRef, newSetData);
         }
 
-        // 4. Add the 'update' operation to the batch to link all new sets to the session
         const sessionDocRef = doc(db, "sessions", sessionId);
         batch.update(sessionDocRef, {
             sets: arrayUnion(...newSetIds)
         });
 
-        // 5. Commit all operations at once
         await batch.commit();
-        console.log("Routine successfully added to session.");
         return { success: true };
 
     } catch (error) {
@@ -289,6 +286,8 @@ export const addRoutineToSession = async (routine, sessionId, userId, allExercis
         return { success: false, error };
     }
 };
+
+
 
 /**
  * Deletes a session and all of its associated sets from Firestore,
