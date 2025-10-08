@@ -61,3 +61,16 @@ export const calculateSessionVolume = (sets, allExercises, metric = 'sets', musc
 
     return volumeByMuscleGroup;
 };
+
+export const sortGraphData = (volumeEntries) => {
+    // Create a mutable copy to avoid side effects
+    const entriesToSort = [...volumeEntries];
+
+    entriesToSort.sort(([, a], [, b]) => {
+        const totalA = a.primary + a.secondary + a.goal;
+        const totalB = b.primary + b.secondary + b.goal;
+        return totalB - totalA; // Sorts in descending order
+    });
+
+    return entriesToSort;
+};

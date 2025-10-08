@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { updateSet } from '../utils/sessionUtils';
-import { rollbackPr, checkAndUpdatePr } from '../utils/exerciseUtils';
+import { calculateSetScore, rollbackPr, checkAndUpdatePr } from '../utils/exerciseUtils';
 
 function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session }) {
     // Local state for the form inputs
@@ -44,7 +44,7 @@ function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session 
         }
 
         // 2. Prepare the updated set data
-        const newScore = (Number(reps) || 0) * (Number(weight) || 0);
+        const newScore = calculateSetScore(reps, weight);
         const updatedData = {
             exercise,
             exerciseName: availableExercises.find(ex => ex.id === exercise)?.name || '',
@@ -102,7 +102,7 @@ function EditSetModal({ isOpen, onClose, setToEdit, availableExercises, session 
                         </div>
                         <div style={{ flex: 1 }}>
                             <label htmlFor="edit-set-intensity" style={{ display: 'block', marginBottom: '4px' }}>Intensity (0-10)</label>
-                            <input id="edit-set-intensity" type="number" step="0.1" min="0" max="10" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={{ flex: 1, width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
+                            <input id="edit-set-intensity" type="number" step="0.01" min="0" max="10" value={intensity} onChange={(e) => setIntensity(e.target.value)} style={{ flex: 1, width: '100%', padding: '8px', background: '#4a5568', borderRadius: '4px', color: 'white' }} />
                         </div>
                     </div>
 

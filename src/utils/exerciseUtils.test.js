@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { checkAndUpdatePr, rollbackPr } from './exerciseUtils';
+import { checkAndUpdatePr, rollbackPr, calculateSetScore } from './exerciseUtils';
 import { doc, updateDoc, getDoc, Timestamp, arrayUnion } from 'firebase/firestore';
 
 // ✨ 2. Update the mock to include 'arrayUnion'
@@ -118,5 +118,46 @@ describe('rollbackPr', () => {
             "pr.currentPr": null, // currentPr should be cleared
             "pr.pastPrs": [],   // pastPrs should remain empty
         });
+    });
+});
+
+it('should set a PR for bodyweight exercises where weight is 0', async () => {
+    const mockExercise = {
+        id: 'ex-pullup',
+        name: 'Pull-ups',
+        pr: { currentPr: null, pastPrs: [] }
+    };
+    // For 25 reps at 0 weight, the score should be 25 * 1 = 25.
+    const mockNewSet = { id: 'set-bw', score: 25, repCount: 25, weight: 0, session: 'session1' };
+
+    await checkAndUpdatePr(mockExercise, mockNewSet);
+
+    // Expect the exercise PR to be updated
+    expect(updateDoc).toHaveBeenCalledWith(undefined, {
+        "pr.currentPr": expect.objectContaining({ score: 25, setId: 'set-bw' })
+    });
+
+    // Expect the set to be marked as a PR
+    expect(updateDoc).toHaveBeenCalledWith(undefined, { isPr: true });
+});
+
+
+describe('calculateSetScore', () => {
+    it('should calculate the score correctly for a set with weight', () => {
+        // Test case: 10 reps at 100 lbs
+        const score = calculateSetScore(10, 100);
+        expect(score).toBe(1000);
+    });
+
+    it('should calculate the score correctly for a bodyweight set with 0 weight', () => {
+        // Test case: 25 reps at 0 lbs (e.g., Pull-ups)
+        const score = calculateSetScore(25, 0);
+        // Expects 25 reps * 1 (effective weight) = 25
+        expect(score).toBe(25);
+    });
+
+    it('should return 0 if reps are 0', () => {
+        const score = calculateSetScore(0, 150);
+        expect(score).toBe(0);
     });
 });

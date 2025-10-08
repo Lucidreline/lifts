@@ -94,8 +94,13 @@ function ActiveSession() {
 
             <SessionMetadata session={session} sessionId={sessionId} />
             <SessionRoutines session={session} sessionId={sessionId} allRoutines={routines} availableExercises={exercises} />
-            <GraphFilters filters={graphFilters} onFilterChange={handleFilterChange} />
-            <VolumeGraph sessionVolume={sessionVolume} />
+            <VolumeGraph
+                sessionVolume={sessionVolume}
+                session={session}
+                sessionId={sessionId}
+                filters={graphFilters}
+                onFilterChange={handleFilterChange}
+            />
             <AddSetForm onExerciseChange={setSelectedExerciseId} selectedExercise={selectedExerciseId} session={session} sessionId={sessionId} availableExercises={exercises} />
             <ExerciseContext
                 session={session}

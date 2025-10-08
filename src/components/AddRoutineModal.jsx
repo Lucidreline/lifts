@@ -19,11 +19,19 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
                 setRoutineName(routineToEdit.name);
                 setRoutineCategories(routineToEdit.categories);
 
-                // Find the full exercise objects based on the IDs stored in the routine
-                const exercisesInRoutine = routineToEdit.exercises.map(id =>
-                    availableExercises.find(ex => ex.id === id)
-                ).filter(Boolean); // Filter out any undefined exercises
+                // --- START OF FIX ---
+
+                // 1. Create a sorted copy of the exercises from the routine to respect their order
+                const sortedRoutineExercises = [...routineToEdit.exercises].sort((a, b) => a.order - b.order);
+
+                // 2. Map over the sorted routine exercises to find the full exercise objects
+                const exercisesInRoutine = sortedRoutineExercises.map(routineEx =>
+                    availableExercises.find(availableEx => availableEx.id === routineEx.exerciseId)
+                ).filter(Boolean); // Filter out any exercises that might have been deleted
+
                 setSelectedExercises(exercisesInRoutine);
+
+                // --- END OF FIX ---
 
             } else {
                 // Reset all fields for "add" mode
@@ -34,6 +42,7 @@ function AddRoutineModal({ isOpen, onClose, routineToEdit, availableExercises })
             }
         }
     }, [isOpen, isEditMode, routineToEdit, availableExercises]);
+
 
 
     const handleCategoryClick = (category) => {

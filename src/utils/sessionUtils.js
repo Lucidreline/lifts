@@ -16,6 +16,8 @@ import {
     where,
     doc
 } from "firebase/firestore";
+import { rollbackPr } from './exerciseUtils';
+import { calculateSetScore } from './exerciseUtils';
 import { db } from "../firebase";
 
 export const createNewSession = async (userId) => {
@@ -106,7 +108,7 @@ export const addSetToSession = async (setData, sessionId, userId) => {
             repCount: Number(setData.reps) || 0,
             weight: Number(setData.weight) || 0,
             intensity: Number(setData.intensity) || 0,
-            score: (Number(setData.reps) || 0) * (Number(setData.weight) || 0),
+            score: calculateSetScore(setData.reps, setData.weight),
             isPr: false, // We'll handle PR logic later
             complete: setData.complete,
             session: sessionId,
@@ -145,6 +147,7 @@ export const getSessionSets = (sessionId, callback) => {
     if (!sessionId) return () => { };
 
     const setsColRef = collection(db, "sets");
+    // We only need to sort by creation time, newest first.
     const q = query(setsColRef, where("session", "==", sessionId), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -239,23 +242,23 @@ export const deleteSet = async (sessionId, setId) => {
  */
 export const addRoutineToSession = async (routine, sessionId, userId, allExercises) => {
     try {
-        // 1. Start a new batch
         const batch = writeBatch(db);
         const newSetIds = [];
 
-        // 2. Loop through each exercise ID in the routine
-        for (const exerciseId of routine.exercises) {
-            const newSetRef = doc(collection(db, "sets")); // Create a reference for a new set
+        // Loop through the new array of exercise objects
+        for (const exercise of routine.exercises) {
+            const newSetRef = doc(collection(db, "sets"));
             newSetIds.push(newSetRef.id);
 
             // Find the full exercise object to get its name
-            const exerciseDetails = allExercises.find(ex => ex.id === exerciseId);
+            const exerciseDetails = allExercises.find(ex => ex.id === exercise.exerciseId);
 
             const newSetData = {
-                complete: false, // These sets start as incomplete
+                order: exercise.order, // <-- Use the explicit order from the routine
+                complete: false,
                 createdAt: serverTimestamp(),
                 createdBy: userId,
-                exercise: exerciseId,
+                exercise: exercise.exerciseId, // <-- Use the ID from the object
                 exerciseName: exerciseDetails?.name || 'Unknown Exercise',
                 intensity: 0,
                 isPr: false,
@@ -267,23 +270,65 @@ export const addRoutineToSession = async (routine, sessionId, userId, allExercis
                 updatedAt: serverTimestamp(),
             };
 
-            // 3. Add the 'set' operation to the batch
             batch.set(newSetRef, newSetData);
         }
 
-        // 4. Add the 'update' operation to the batch to link all new sets to the session
         const sessionDocRef = doc(db, "sessions", sessionId);
         batch.update(sessionDocRef, {
             sets: arrayUnion(...newSetIds)
         });
 
-        // 5. Commit all operations at once
         await batch.commit();
-        console.log("Routine successfully added to session.");
         return { success: true };
 
     } catch (error) {
         console.error("Error adding routine to session:", error);
+        return { success: false, error };
+    }
+};
+
+
+
+/**
+ * Deletes a session and all of its associated sets from Firestore,
+ * rolling back any PRs that were part of the session.
+ * @param {string} sessionId - The ID of the session to delete.
+ */
+export const deleteSession = async (sessionId) => {
+    try {
+        // 1. Find all sets belonging to the session
+        const setsColRef = collection(db, "sets");
+        const q = query(setsColRef, where("session", "==", sessionId));
+        const setsSnapshot = await getDocs(q);
+
+        // 2. Roll back PRs for any sets that were a PR
+        // We use a for...of loop here to properly handle the async 'await' call
+        for (const setDoc of setsSnapshot.docs) {
+            const setData = setDoc.data();
+            if (setData.isPr) {
+                console.log(`Rolling back PR for exercise: ${setData.exerciseName}`);
+                await rollbackPr(setData.exercise);
+            }
+        }
+
+        // 3. Use a batch to delete all documents efficiently
+        const batch = writeBatch(db);
+
+        setsSnapshot.forEach((doc) => {
+            batch.delete(doc.ref); // Add each set to the delete batch
+        });
+
+        const sessionDocRef = doc(db, "sessions", sessionId);
+        batch.delete(sessionDocRef); // Add the session itself to the delete batch
+
+        // 4. Commit the batch
+        await batch.commit();
+
+        console.log(`Session ${sessionId} and all its sets were deleted successfully.`);
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error deleting session and rolling back PRs:", error);
         return { success: false, error };
     }
 };

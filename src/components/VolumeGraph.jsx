@@ -7,7 +7,10 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
+import { updateSession } from '../utils/sessionUtils';
+import GraphFilters from './GraphFilters';
 import { Bar } from 'react-chartjs-2';
+import { sortGraphData } from '../utils/graphUtils';
 
 ChartJS.register(
     CategoryScale,
@@ -18,9 +21,18 @@ ChartJS.register(
     Legend
 );
 
-function VolumeGraph({ sessionVolume }) {
+function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChange }) {
+
+    const isCollapsed = session?.uiState?.graphCollapsed ?? false;
+
+    const handleToggleCollapse = () => {
+        if (!sessionId) return;
+        updateSession(sessionId, { "uiState.graphCollapsed": !isCollapsed });
+    };
+
     const options = {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: { position: 'top' },
             title: { display: true, text: 'Session Volume' },
@@ -36,7 +48,9 @@ function VolumeGraph({ sessionVolume }) {
         ([key, value]) => (value.primary + value.secondary + value.goal) > 0
     );
 
-    const labels = filteredVolumeEntries.map(([key, value]) => key);
+    const sortedEntries = sortGraphData(filteredVolumeEntries);
+
+    const labels = sortedEntries.map(([key, value]) => key);
 
     const data = {
         labels,
@@ -44,24 +58,50 @@ function VolumeGraph({ sessionVolume }) {
             // Dataset for Primary volume
             {
                 label: 'Primary',
-                data: filteredVolumeEntries.map(([key, value]) => value.primary),
+                data: sortedEntries.map(([key, value]) => value.primary),
                 backgroundColor: 'rgba(129, 140, 248, 0.7)', // Indigo
             },
             // NEW: Dataset for Secondary volume
             {
                 label: 'Secondary',
-                data: filteredVolumeEntries.map(([key, value]) => value.secondary),
+                data: sortedEntries.map(([key, value]) => value.secondary),
                 backgroundColor: 'rgba(52, 211, 153, 0.7)', // Emerald Green
             },
             {
                 label: 'Goal',
-                data: filteredVolumeEntries.map(([key, value]) => value.goal),
+                data: sortedEntries.map(([key, value]) => value.goal),
                 backgroundColor: 'rgba(251, 191, 36, 0.7)', // Amber Yellow
             },
         ],
     };
 
-    return <Bar options={options} data={data} />;
+    const MIN_BAR_WIDTH_PX = 50; // The minimum width for each bar in pixels. Adjust if needed.
+    const CHART_PADDING_PX = 20; // Some extra padding on the sides.
+    const chartMinWidth = (labels.length * MIN_BAR_WIDTH_PX) + CHART_PADDING_PX;
+
+    return (
+        <div style={{ border: '1px solid #4a5568', borderRadius: '8px' }}>
+            {/* Persistent Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', backgroundColor: '#2d3748', borderRadius: isCollapsed ? '8px' : '8px 8px 0 0' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Session Volume Analysis</h2>
+                <button onClick={handleToggleCollapse}>
+                    {isCollapsed ? 'Show' : 'Hide'}
+                </button>
+            </div>
+
+            {!isCollapsed && (
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <GraphFilters filters={filters} onFilterChange={onFilterChange} />
+                    <div style={{ overflowX: 'auto' }}>
+                        {/* This inner div sets the minimum width and a fixed height for the canvas */}
+                        <div style={{ position: 'relative', minWidth: `${chartMinWidth}px`, height: '400px' }}>
+                            <Bar options={options} data={data} />
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default VolumeGraph;

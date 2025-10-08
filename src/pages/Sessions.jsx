@@ -2,7 +2,7 @@ import { useUserSessions } from '../hooks/useUserSessions';
 import SessionList from '../components/SessionList';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { createNewSession } from '../utils/sessionUtils';
+import { createNewSession, deleteSession } from '../utils/sessionUtils';
 
 function Sessions() {
     const { sessions, isLoading } = useUserSessions();
@@ -14,6 +14,13 @@ function Sessions() {
         const newSessionId = await createNewSession(userId);
         if (newSessionId) {
             navigate(`/session/${newSessionId}`);
+        }
+    };
+
+    const handleDeleteSession = async (sessionId) => {
+        // Important: Confirm with the user before deleting!
+        if (window.confirm("Are you sure you want to delete this session? This action cannot be undone.")) {
+            await deleteSession(sessionId);
         }
     };
 
@@ -32,7 +39,7 @@ function Sessions() {
             {isLoading ? (
                 <p>Loading sessions...</p>
             ) : (
-                <SessionList sessions={sessions} />
+                <SessionList sessions={sessions} onDelete={handleDeleteSession} />
             )}
         </div>
     );
