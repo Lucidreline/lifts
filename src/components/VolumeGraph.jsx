@@ -64,7 +64,7 @@ function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChang
             // NEW: Dataset for Secondary volume
             {
                 label: 'Secondary',
-                data: sortedEntries.map(([key, value]) => value.secondary)
+                data: sortedEntries.map(([key, value]) => value.secondary),
                 backgroundColor: 'rgba(52, 211, 153, 0.7)', // Emerald Green
             },
             {
