@@ -10,6 +10,7 @@ import {
 import { updateSession } from '../utils/sessionUtils';
 import GraphFilters from './GraphFilters';
 import { Bar } from 'react-chartjs-2';
+import { sortGraphData } from '../utils/graphUtils';
 
 ChartJS.register(
     CategoryScale,
@@ -47,13 +48,9 @@ function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChang
         ([key, value]) => (value.primary + value.secondary + value.goal) > 0
     );
 
-    filteredVolumeEntries.sort(([, a], [, b]) => {
-        const totalA = a.primary + a.secondary + a.goal;
-        const totalB = b.primary + b.secondary + b.goal;
-        return totalB - totalA; // Sorts in descending order
-    });
+    const sortedEntries = sortGraphData(filteredVolumeEntries);
 
-    const labels = filteredVolumeEntries.map(([key, value]) => key);
+    const labels = sortedEntries.map(([key, value]) => key);
 
     const data = {
         labels,
@@ -61,18 +58,18 @@ function VolumeGraph({ sessionVolume, session, sessionId, filters, onFilterChang
             // Dataset for Primary volume
             {
                 label: 'Primary',
-                data: filteredVolumeEntries.map(([key, value]) => value.primary),
+                data: sortedEntries.map(([key, value]) => value.primary),
                 backgroundColor: 'rgba(129, 140, 248, 0.7)', // Indigo
             },
             // NEW: Dataset for Secondary volume
             {
                 label: 'Secondary',
-                data: filteredVolumeEntries.map(([key, value]) => value.secondary),
+                data: sortedEntries.map(([key, value]) => value.secondary)
                 backgroundColor: 'rgba(52, 211, 153, 0.7)', // Emerald Green
             },
             {
                 label: 'Goal',
-                data: filteredVolumeEntries.map(([key, value]) => value.goal),
+                data: sortedEntries.map(([key, value]) => value.goal),
                 backgroundColor: 'rgba(251, 191, 36, 0.7)', // Amber Yellow
             },
         ],

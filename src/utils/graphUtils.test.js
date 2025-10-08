@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateSessionVolume } from './graphUtils';
-
+import { calculateSessionVolume, sortGraphData } from './graphUtils';
 // 1. MOCK DATA: We create fake data that mimics our Firestore documents.
 const mockExercises = [
     {
@@ -78,5 +77,24 @@ describe('calculateSessionVolume', () => {
     it('should return an empty object if there are no sets', () => {
         const result = calculateSessionVolume([], mockExercises, 'sets', 'simple');
         expect(result).toEqual({});
+    });
+});
+
+describe('sortGraphData', () => {
+    it('should sort entries by total volume in descending order', () => {
+        const unsortedEntries = [
+            ['Squat', { primary: 100, secondary: 50, goal: 0 }],   // Total: 150
+            ['Bench', { primary: 200, secondary: 0, goal: 0 }],    // Total: 200
+            ['Deadlift', { primary: 300, secondary: 50, goal: 20 }], // Total: 370
+        ];
+
+        const sorted = sortGraphData(unsortedEntries);
+
+        // Check that the first item is now Deadlift (highest total)
+        expect(sorted[0][0]).toBe('Deadlift');
+        // Check that the second item is now Bench
+        expect(sorted[1][0]).toBe('Bench');
+        // Check that the last item is Squat (lowest total)
+        expect(sorted[2][0]).toBe('Squat');
     });
 });
