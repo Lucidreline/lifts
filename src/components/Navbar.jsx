@@ -26,7 +26,10 @@ function Navbar() {
 
                 {/* 3. Hamburger Button - only shows on mobile */}
                 <div className="md:hidden">
-                    <button onClick={() => setIsOpen(!isOpen)}>
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        aria-label={isOpen ? "Close menu" : "Open menu"}
+                    >
                         {isOpen ? (
                             // "X" Icon
                             <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -42,7 +45,7 @@ function Navbar() {
                 </div>
 
                 {/* 4. Navigation Links - updated with responsive classes */}
-                <div className={`
+                <div data-testid="nav-links-container" className={`
                     ${isOpen ? 'flex' : 'hidden'} 
                     md:flex flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto 
                     bg-gray-800 md:bg-transparent shadow-md md:shadow-none 

@@ -42,7 +42,8 @@ describe('addRoutineToFirestore', () => {
                 name: 'My Push Day',
                 categories: ['Push'],
                 user: mockUserId,
-                exercises: ['ex1', 'ex2'], // Check that it's an array of IDs, not objects
+                exercises: [{ exerciseId: 'ex1', order: 0 },
+                { exerciseId: 'ex2', order: 1 }],
             })
         );
     });

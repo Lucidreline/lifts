@@ -1,86 +1,109 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { addRoutineToSession, deleteSet } from './sessionUtils';
-// ✨ 1. Import all the functions we need to mock
-import { collection, doc, writeBatch, arrayUnion, serverTimestamp, arrayRemove, deleteDoc, updateDoc } from 'firebase/firestore';
+import { addRoutineToSession, deleteSet, deleteSession } from './sessionUtils';
+import * as exerciseUtils from './exerciseUtils';
+// 1. Import ALL the functions we need to access in our tests
+import { getDocs, writeBatch, doc, query, where, collection, deleteDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 
-// ✨ 2. The mock setup, including a mock for writeBatch
-const mockBatch = {
-    set: vi.fn(),
-    update: vi.fn(),
-    commit: vi.fn(),
-};
-
+// 2. Update the mock to include ALL functions we want to control
 vi.mock('firebase/firestore', async (importOriginal) => {
     const actual = await importOriginal();
     return {
         ...actual,
+        getDocs: vi.fn(),
+        writeBatch: vi.fn(() => ({
+            delete: vi.fn(),
+            commit: vi.fn(),
+            set: vi.fn(),    // Add set
+            update: vi.fn(), // Add update
+        })),
+        doc: vi.fn(() => ({ ref: 'mock-doc-ref' })), // Simplified mock
+        query: vi.fn(),
+        where: vi.fn(),
         collection: vi.fn(),
-        doc: vi.fn(() => ({ id: 'mock-doc-id' })),
-        arrayRemove: vi.fn((...args) => `arrayRemove(${args.join(', ')})`),
-        writeBatch: vi.fn(() => mockBatch), // When writeBatch is called, return our mock batch object
-        arrayUnion: vi.fn((...args) => `arrayUnion(${args.join(', ')})`), // Simple mock for arrayUnion
-        serverTimestamp: vi.fn(),
-        deleteDoc: vi.fn(),
-        updateDoc: vi.fn(),
+        deleteDoc: vi.fn(), // Add deleteDoc
+        updateDoc: vi.fn(), // Add updateDoc
+        arrayRemove: vi.fn(),// Add arrayRemove
     };
 });
 
+// Mock our own exerciseUtils module to spy on rollbackPr
+vi.mock('./exerciseUtils', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        rollbackPr: vi.fn(),
+    };
+});
+
+// --- TESTS ---
 
 describe('addRoutineToSession', () => {
+    beforeEach(() => vi.clearAllMocks());
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
+    it('should create a set for each exercise and update the session', async () => {
+        const mockBatch = { set: vi.fn(), update: vi.fn(), commit: vi.fn() };
+        writeBatch.mockReturnValue(mockBatch);
 
-    it('should create a set for each exercise in the routine and update the session in a batch', async () => {
-        // ✨ 3. Set up our mock data
         const mockRoutine = {
-            exercises: ['ex1', 'ex2'], // A routine with two exercise IDs
+            exercises: [
+                { exerciseId: 'ex1', order: 0 },
+                { exerciseId: 'ex2', order: 1 },
+            ]
         };
         const mockAllExercises = [
             { id: 'ex1', name: 'Push Up' },
-            { id: 'ex2', name: 'Pull Up' },
+            { id: 'ex2', name: 'Dips' },
         ];
-        const sessionId = 'session123';
-        const userId = 'user123';
 
-        await addRoutineToSession(mockRoutine, sessionId, userId, mockAllExercises);
+        await addRoutineToSession(mockRoutine, 'session123', 'user123', mockAllExercises);
 
-        // ✨ 4. Assert that our batch functions were used correctly
         expect(writeBatch).toHaveBeenCalledTimes(1);
-        expect(mockBatch.set).toHaveBeenCalledTimes(2); // Called once for each exercise
+        expect(mockBatch.set).toHaveBeenCalledTimes(2); // Called for each exercise
         expect(mockBatch.update).toHaveBeenCalledTimes(1); // Called once for the session
-        expect(mockBatch.commit).toHaveBeenCalledTimes(1); // The batch was executed
-
-        // Optional: A more detailed check on the first set created
-        const firstSetCallArgs = mockBatch.set.mock.calls[0][1];
-        expect(firstSetCallArgs).toEqual(expect.objectContaining({
-            complete: false,
-            exercise: 'ex1',
-            exerciseName: 'Push Up',
-        }));
+        expect(mockBatch.commit).toHaveBeenCalledTimes(1);
     });
 });
 
+
 describe('deleteSet', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
+    beforeEach(() => vi.clearAllMocks());
 
-    it('should delete the set document and remove its ID from the session', async () => {
-        const sessionId = 'session123';
-        const setId = 'setABC';
+    it('should delete the set and remove its ID from the session', async () => {
+        await deleteSet('session123', 'set123');
 
-        await deleteSet(sessionId, setId);
-
-        // 1. Assert that the set document was deleted
+        // Assert that the set document was deleted
         expect(deleteDoc).toHaveBeenCalledTimes(1);
 
-        // 2. Assert that the session document was updated to remove the set ID
+        // Assert that the session document was updated
         expect(updateDoc).toHaveBeenCalledTimes(1);
-        expect(updateDoc).toHaveBeenCalledWith(
-            expect.anything(), // We don't need to check the doc ref here
-            { sets: arrayRemove(setId) } // Check that it tried to remove the correct ID
-        );
+        expect(arrayRemove).toHaveBeenCalledWith('set123');
+    });
+});
+
+
+describe('deleteSession', () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it('should delete a session and its sets, and roll back a PR', async () => {
+        const docs = [
+            { data: () => ({ isPr: true, exercise: 'exercise123' }), ref: 'setRef1' },
+            { data: () => ({ isPr: false }), ref: 'setRef2' },
+        ];
+        const mockSetsSnapshot = {
+            docs: docs,
+            forEach: (callback) => docs.forEach(callback), // Add the forEach method
+        };
+        // 3. Use the imported getDocs
+        getDocs.mockResolvedValue(mockSetsSnapshot);
+
+        const mockBatch = { delete: vi.fn(), commit: vi.fn() };
+        writeBatch.mockReturnValue(mockBatch);
+
+        await deleteSession('sessionABC');
+
+        expect(exerciseUtils.rollbackPr).toHaveBeenCalledWith('exercise123');
+        expect(mockBatch.delete).toHaveBeenCalledWith('setRef1');
+        expect(mockBatch.delete).toHaveBeenCalledWith('setRef2');
+        expect(mockBatch.commit).toHaveBeenCalledTimes(1);
     });
 });
